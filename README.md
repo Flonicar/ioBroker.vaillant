@@ -19,6 +19,8 @@ Vaillant multiMatic and myVaillant adapter
 
 Enter the mail and password of the multimatic/senso or myVaillant app in the instance options.
 
+The myVAILLANT login is handled automatically, including Vaillant's login protection - you only need your email and password. The session is kept across restarts, so the adapter does not log in from scratch every time.
+
 Configurations can be changed by adjusting them under the configuration sub-item. Some configurations are only applied when the mode is ON or MANUAL and not AUTO or TIME_CONTROLLED.
 
 ## **Example multimatic:**
@@ -268,10 +270,10 @@ zone/2/xxxx
 ## Changelog
 
 ### **WORK IN PROGRESS**
- - fix myVAILLANT login by solving the new ALTCHA proof-of-work challenge
- - persist the OAuth session to survive restarts without a full login
- - add read-only trouble codes, RTS, MPC, energy management and EEBUS data
- - add remote commands: ventilation boost/mode/fan-stage, cooling for days, EEBUS toggle and holiday/away mode
+ - fix myVAILLANT login (adapts to Vaillant's new login protection)
+ - stay logged in after a restart
+ - new data: fault codes, energy and EEBUS info
+ - new controls: ventilation, cooling days and holiday mode
 
 ### 0.7.5 (2025-07-09)
  - revert change to fix save issue
