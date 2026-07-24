@@ -268,6 +268,11 @@ zone/2/xxxx
 ```
 
 ## Changelog
+### 1.0.1 (2026-07-24)
+ - replaced the deprecated request library with axios
+ - migrated to @iobroker/eslint-config and updated dependencies
+ - require Node.js 22 and various repository fixes
+
 ### 1.0.0 (2026-07-24)
  - fix myVAILLANT login. Please enter your password again
  - stay logged in after a restart
