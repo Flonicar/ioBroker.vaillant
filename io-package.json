@@ -119,7 +119,6 @@
         ]
       }
     ],
-    "title": "Vaillant multiMATIC",
     "titleLang": {
       "en": "Vaillant multiMATIC",
       "de": "Vaillant multiMATIC",
@@ -130,6 +129,7 @@
       "it": "Vaillant multiMATIC",
       "es": "Vaillant multiMATIC",
       "pl": "Vaillant multiMATIC",
+      "uk": "Vaillant multiMATIC",
       "zh-cn": "万能multiMATIC"
     },
     "desc": {
@@ -142,6 +142,7 @@
       "it": "Vaillant multiMatic VR900 / VR920 Adapter",
       "es": "Adaptador Vaillant multiMatic VR900 / VR920",
       "pl": "Adapter Vaillant multiMatic VR900 / VR920",
+      "uk": "Адаптер Vaillant multiMatic VR900 / VR920",
       "zh-cn": "Vaillant multiMatic VR900 / VR920适配器"
     },
     "authors": [
@@ -151,11 +152,15 @@
       "vaillant",
       "multiMATIC",
       "VR900",
-      "VR920"
+      "VR920",
+      "ioBroker"
     ],
-    "license": "MIT",
+    "licenseInformation": {
+      "type": "free",
+      "license": "MIT"
+    },
+    "tier": 2,
     "platform": "Javascript/Node.js",
-    "main": "main.js",
     "icon": "vaillant.png",
     "enabled": true,
     "extIcon": "https://raw.githubusercontent.com/TA2k/ioBroker.vaillant/master/admin/vaillant.png",
@@ -166,13 +171,26 @@
     "connectionType": "cloud",
     "dataSource": "poll",
     "compact": true,
-    "materialize": true,
+    "adminUI": {
+      "config": "materialize"
+    },
     "dependencies": [
       {
-        "js-controller": ">=1.4.2"
+        "js-controller": ">=6.0.11"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=7.6.17"
       }
     ]
   },
+  "protectedNative": [
+    "password"
+  ],
+  "encryptedNative": [
+    "password"
+  ],
   "native": {
     "user": "",
     "password": "",

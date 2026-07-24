@@ -13,31 +13,31 @@
 
 ## vaillant adapter for ioBroker
 
-Vaillant multiMatic und myVaillant Adapter
+Vaillant multiMatic and myVaillant adapter
 
 ### Getting started
 
-In den Instanzoptionen mail und password der multimatic /senso oder myVaillant app eingeben.
+Enter the mail and password of the multimatic/senso or myVaillant app in the instance options.
 
-Configuration können geändert werde in dem sie unter dem Unterpunkt configuration angepasst werden. Manche configuration werden erst angewendet wenn der Modus auf ON oder MANUAL ist und nicht AUTO oder TIME_CONTROLLED
+Configurations can be changed by adjusting them under the configuration sub-item. Some configurations are only applied when the mode is ON or MANUAL and not AUTO or TIME_CONTROLLED.
 
-## **Beispiel Mutlimatic:**
+## **Example multimatic:**
 
-**Warmwasser**: vaillant.0.serialnummer.systemcontrol/tli.dhw.hotwater.configuration.hotwater_temperature_setpoint
-**Heizung**:
-Erst auf MANUAL
+**Hot water**: vaillant.0.serialnummer.systemcontrol/tli.dhw.hotwater.configuration.hotwater_temperature_setpoint
+**Heating**:
+First set to MANUAL
 vaillant.0.serialnummber.systemcontrol/tli.zones03.heating.configuration.operation_mode
 MANUAL
-Dann die Temperatur
+Then the temperature
 vaillant.0.serial.systemcontrol/tli.zones03.heating.configuration.manual_mode_temperature_setpoint
-Und am Ende operation_mode auf TIME_CONTROLLED
+And finally set operation_mode to TIME_CONTROLLED
 
-Parameter können über den Punkt parameterValue angepasst werden dabei beachten welche Werte im Objekt definition erlaubt sind.
+Parameters can be adjusted via the parameterValue item. Note which values are allowed in the definition object.
 
-## **Beispiel myVaillant:**
+## **Example myVaillant:**
 
-vaillant.0.id.systemControlState.controlState.domesticHotWater01.boost auf true/false setzen um den Boost zu aktivieren oder deaktivieren
-vaillant.0.id.systemControlState.controlState.zones01.desiredRoomTemperatureSetpoint um die RaumTemperatur zu setzen
+vaillant.0.id.systemControlState.controlState.domesticHotWater01.boost set to true/false to enable or disable the boost
+vaillant.0.id.systemControlState.controlState.zones01.desiredRoomTemperatureSetpoint to set the room temperature
 vaillant.0.id.systemControlState.controlState.zones01.setBackTemperature
 vaillant.0.id.systemControlState.controlState.zones01.heatingOperationMode OFF MANUAL TIME_CONTROLLED
 vaillant.0.id.systemControlState.controlState.domesticHotWater01.operationMode OFF MANUAL TIME_CONTROLLED
@@ -54,7 +54,7 @@ You can use custom Commmand remote for not predefined remotes
 
 ### Examples:
 
-## Die zone kann von 0 bis X gehen. Bitte zone/0/ oder zone/2/ testen
+## The zone can range from 0 to X. Please test zone/0/ or zone/2/
 
 zone/0/xxxx
 
@@ -304,7 +304,7 @@ zone/2/xxxx
 
 MIT License
 
-Copyright (c) 2020-2030 TA2k <tombox2020@gmail.com>
+Copyright (c) 2020-2026 TA2k <tombox2020@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

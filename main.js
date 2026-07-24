@@ -12,7 +12,7 @@ const traverse = require("traverse");
 const Json2iob = require("json2iob");
 const axios = require("axios").default;
 const tough = require("tough-cookie");
-const crypto = require("crypto");
+const crypto = require("node:crypto");
 const qs = require("qs");
 const { HttpsCookieAgent } = require("http-cookie-agent/http");
 
@@ -47,10 +47,10 @@ class Vaillant extends utils.Adapter {
         Accept: "application/json, text/plain, */*",
         "x-client-locale": "de-DE",
         "x-idm-identifier": "KEYCLOAK",
-        "x-app-version": "3.7.1",
-        "x-app-build": "25262",
+        "x-app-version": "3.9.0",
+        "x-app-build": "25662",
         "ocp-apim-subscription-key": "1e0a2f3511fb4c5bbb1c7f9fedd20b1c",
-        "User-Agent": "myVAILLANT/25262 CFNetwork/1496.0.7 Darwin/23.5.0",
+        "User-Agent": "myVAILLANT/25662 CFNetwork/1496.0.7 Darwin/23.5.0",
       },
     });
     this.jar = request.jar();
@@ -66,7 +66,7 @@ class Vaillant extends utils.Adapter {
     };
     this.myvHeader = {
       accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "user-agent": "myVAILLANT/25262 CFNetwork/1496.0.7 Darwin/23.5.0",
+      "user-agent": "myVAILLANT/25662 CFNetwork/1496.0.7 Darwin/23.5.0",
       "accept-language": "de-de",
     };
     this.atoken = "";
@@ -105,7 +105,15 @@ class Vaillant extends utils.Adapter {
     // Reset the connection indicator during startup
     this.setState("info.connection", false, true);
     if (this.config.myv) {
-      await this.myvLoginv2();
+      // Try to reuse a persisted session first so we skip the ALTCHA login on restarts.
+      await this.loadSession();
+      if (this.session.refresh_token) {
+        this.log.info("Found persisted session, trying to refresh token");
+        await this.refreshToken();
+      }
+      if (!this.session.access_token) {
+        await this.myvLoginv2();
+      }
       if (this.session.access_token) {
         this.log.info("Getting myv devices");
         await this.getMyvDeviceList();
@@ -117,7 +125,7 @@ class Vaillant extends utils.Adapter {
         await this.clearOldStats();
         await this.updateMyStats();
         await this.updateMyvEfficiency();
-        this.updateInterval = setInterval(
+        this.updateInterval = this.setInterval(
           async () => {
             await this.updateMyvDevices();
             await this.updateMyvRooms();
@@ -125,7 +133,7 @@ class Vaillant extends utils.Adapter {
           },
           this.config.interval * 60 * 1000,
         );
-        this.statInterval = setInterval(
+        this.statInterval = this.setInterval(
           async () => {
             //run only between 00:00 and 00:11
             const now = new Date();
@@ -137,7 +145,7 @@ class Vaillant extends utils.Adapter {
           10 * 60 * 1000,
         );
       }
-      this.refreshTokenInterval = setInterval(
+      this.refreshTokenInterval = this.setInterval(
         () => {
           this.refreshToken();
         },
@@ -217,7 +225,7 @@ class Vaillant extends utils.Adapter {
                   this.log.error("clean configuration failed");
                 });
 
-              this.updateInterval = setInterval(
+              this.updateInterval = this.setInterval(
                 () => {
                   this.updateValues();
                 },
@@ -251,6 +259,10 @@ class Vaillant extends utils.Adapter {
     })
       .then((res) => {
         this.log.debug(JSON.stringify(res.data));
+        if (typeof res.data !== "string" || !res.data.includes('action="')) {
+          this.log.error("Login failed: no login form action found in auth response");
+          return;
+        }
         return res.data.split('action="')[1].split('"')[0];
       })
       .catch((error) => {
@@ -261,6 +273,27 @@ class Vaillant extends utils.Adapter {
       return;
     }
     loginUrl = loginUrl.replace(/&amp;/g, "&");
+
+    // Vaillant added an ALTCHA proof-of-work challenge to the Keycloak login. Solve it
+    // headless and send it as the "altcha" form field, otherwise the login returns no redirect.
+    const loginData = { username: this.config.user, password: this.config.password, credentialId: "" };
+    await this.requestClient({
+      method: "GET",
+      url: "https://identity.vaillant-group.com/api/altcha/challenge",
+      headers: this.myvHeader,
+    })
+      .then((res) => {
+        this.log.debug(JSON.stringify(res.data));
+        const altcha = this.solveAltchaChallenge(res.data);
+        if (altcha) {
+          loginData.altcha = altcha;
+        }
+      })
+      .catch((error) => {
+        this.log.debug("Could not fetch or solve ALTCHA challenge, continuing without it");
+        this.log.debug(error);
+      });
+
     const response = await this.requestClient({
       method: "POST",
       url: loginUrl,
@@ -272,12 +305,17 @@ class Vaillant extends utils.Adapter {
           "Mozilla/5.0 (iPhone; CPU iPhone OS 16_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/604.1",
         "accept-language": "de-de",
       },
-      data: qs.stringify({ username: this.config.user, password: this.config.password }),
+      data: qs.stringify(loginData),
     })
       .then((res) => {
         this.log.debug(JSON.stringify(res.data));
         this.log.error("Login failed no code for myvLoginv2");
-        this.log.error(res.data.split('polite">')[1].split("<")[0].trim());
+        // Try to extract the Keycloak error message, but never crash if it is missing
+        if (typeof res.data === "string" && res.data.includes('polite">')) {
+          this.log.error(res.data.split('polite">')[1].split("<")[0].trim());
+        } else {
+          this.log.error("No redirect received. Check credentials or ALTCHA handling.");
+        }
       })
       .catch((error) => {
         if (error && error.message.includes("Unsupported protocol")) {
@@ -303,9 +341,9 @@ class Vaillant extends utils.Adapter {
         "Accept-Language": "de-de",
         "x-client-locale": "de-DE",
         "x-idm-identifier": "KEYCLOAK",
-        "x-app-version": "3.7.1",
-        "x-app-build": "25262",
-        "User-Agent": "myVAILLANT/25262 CFNetwork/1496.0.7 Darwin/23.5.0",
+        "x-app-version": "3.9.0",
+        "x-app-build": "25662",
+        "User-Agent": "myVAILLANT/25662 CFNetwork/1496.0.7 Darwin/23.5.0",
       },
       data: qs.stringify({
         client_id: "myvaillant",
@@ -315,11 +353,12 @@ class Vaillant extends utils.Adapter {
         redirect_uri: "enduservaillant.page.link://login",
       }),
     })
-      .then((res) => {
+      .then(async (res) => {
         this.log.debug(JSON.stringify(res.data));
         if (res.data.access_token) {
           this.log.info("Login successful");
           this.session = res.data;
+          await this.persistSession();
           this.setState("info.connection", true, true);
         }
       })
@@ -765,9 +804,9 @@ class Vaillant extends utils.Adapter {
         "Accept-Language": "de-de",
         "x-client-locale": "de-DE",
         "x-idm-identifier": "KEYCLOAK",
-        "x-app-version": "3.7.1",
-        "x-app-build": "25262",
-        "User-Agent": "myVAILLANT/25262 CFNetwork/1496.0.7 Darwin/23.5.0",
+        "x-app-version": "3.9.0",
+        "x-app-build": "25662",
+        "User-Agent": "myVAILLANT/25662 CFNetwork/1496.0.7 Darwin/23.5.0",
       },
       data: qs.stringify({
         refresh_token: this.session.refresh_token,
@@ -775,17 +814,94 @@ class Vaillant extends utils.Adapter {
         grant_type: "refresh_token",
       }),
     })
-      .then((res) => {
+      .then(async (res) => {
         this.log.debug(JSON.stringify(res.data));
         this.session = res.data;
         this.log.debug("Refresh successful");
+        await this.persistSession();
         this.setState("info.connection", true, true);
       })
       .catch(async (error) => {
         this.log.error(error);
         error.response && this.log.error(JSON.stringify(error.response.data));
-        this.setStateAsync("info.connection", false, true);
+        // Only drop the stored token if the server actually rejected it (invalid_grant).
+        // Transient failures (DNS, timeout, 5xx) must keep the refresh token for a retry.
+        const rejected = error.response && (error.response.status === 400 || error.response.status === 401);
+        if (rejected) {
+          this.log.warn("Refresh token rejected, running full login");
+          this.session = {};
+          await this.clearSession();
+          await this.myvLoginv2();
+          if (this.session.access_token) {
+            return;
+          }
+        }
+        await this.setStateAsync("info.connection", false, true);
       });
+  }
+  /**
+   * Persist the OAuth session (incl. refresh token) as plain JSON in auth.session,
+   * so it survives adapter restarts and we can skip the ALTCHA login flow.
+   */
+  async persistSession() {
+    try {
+      await this.setObjectNotExistsAsync("auth.session", {
+        type: "state",
+        common: {
+          name: "OAuth session (access/refresh token)",
+          type: "string",
+          role: "json",
+          read: true,
+          write: false,
+        },
+        native: {},
+      });
+      // Store the account/realm the token belongs to, so we never reuse it after a config change.
+      const persisted = Object.assign({}, this.session, {
+        _user: this.config.user,
+        _location: this.config.location,
+      });
+      await this.setStateAsync("auth.session", JSON.stringify(persisted), true);
+    } catch (error) {
+      this.log.debug("Could not persist session: " + error);
+    }
+  }
+  /**
+   * Load a previously persisted OAuth session from auth.session into this.session.
+   * Only accepts a well-formed object that still belongs to the configured account.
+   */
+  async loadSession() {
+    try {
+      const state = await this.getStateAsync("auth.session");
+      if (!state || !state.val) {
+        return;
+      }
+      const parsed = JSON.parse(state.val);
+      if (!parsed || typeof parsed !== "object" || !parsed.refresh_token) {
+        this.log.debug("Persisted session is malformed, ignoring");
+        await this.clearSession();
+        return;
+      }
+      if (parsed._user !== this.config.user || parsed._location !== this.config.location) {
+        this.log.debug("Persisted session belongs to a different account, ignoring");
+        await this.clearSession();
+        return;
+      }
+      this.session = parsed;
+    } catch (error) {
+      this.log.debug("Could not load persisted session: " + error);
+      this.session = {};
+    }
+  }
+  /**
+   * Remove a persisted session, e.g. after a refresh token became invalid.
+   */
+  async clearSession() {
+    try {
+      await this.setStateAsync("auth.session", "", true);
+    } catch (error) {
+      this.log.debug("Could not clear persisted session: " + error);
+    }
   }
   updateValues() {
     this.log.debug("update values");
@@ -877,8 +993,8 @@ class Vaillant extends utils.Adapter {
           try {
             this.log.debug("Login successful");
             this.authenticate(reject, resolve);
-            this.reauthInterval && clearInterval(this.reauthInterval);
-            this.reauthInterval = setInterval(
+            this.reauthInterval && this.clearInterval(this.reauthInterval);
+            this.reauthInterval = this.setInterval(
               () => {
                 this.login();
               },
@@ -1071,8 +1187,8 @@ class Vaillant extends utils.Adapter {
               if (!this.isRelogin) {
                 this.log.info("401 Error try to relogin.");
                 this.isRelogin = true;
-                this.reloginTimeout && clearTimeout(this.reloginTimeout);
-                this.reloginTimeout = setTimeout(() => {
+                this.reloginTimeout && this.clearTimeout(this.reloginTimeout);
+                this.reloginTimeout = this.setTimeout(() => {
                   this.log.debug("Start relogin");
                   this.login()
                     .then(() => {
@@ -1316,7 +1432,7 @@ class Vaillant extends utils.Adapter {
     if (this.adapterStopped) {
       ms = 0;
     }
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => this.setTimeout(resolve, ms));
   }
   getCodeChallenge() {
     const chars = "0123456789abcdef";
@@ -1326,6 +1442,51 @@ class Vaillant extends utils.Adapter {
     hash = hash.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 
     return [codeVerifier, hash];
+  }
+  /**
+   * Solves the ALTCHA proof-of-work challenge served by Vaillant's Keycloak login page.
+   * The challenge JSON comes from GET /api/altcha/challenge. We brute-force a counter until
+   * PBKDF2-HMAC(nonce + counter, salt, cost) starts with keyPrefix, then base64-pack the
+   * solution the same way the browser widget does, so it can be sent as the "altcha" form field.
+   * @param {any} challenge
+   * @returns {string|null}
+   */
+  solveAltchaChallenge(challenge) {
+    if (!challenge || !challenge.parameters) {
+      return null;
+    }
+    const parameters = challenge.parameters;
+    const nonceBuf = Buffer.from(parameters.nonce, "hex");
+    const saltBuf = Buffer.from(parameters.salt, "hex");
+    const keyPrefixBuf = Buffer.from(parameters.keyPrefix, "hex");
+    const cost = parameters.cost;
+    const keyLength = parameters.keyLength || 32;
+    const digest =
+      {
+        "PBKDF2/SHA-512": "sha512",
+        "PBKDF2/SHA-384": "sha384",
+      }[parameters.algorithm] || "sha256";
+
+    // Brute-force the counter until PBKDF2 output starts with keyPrefix. The upper bound
+    // guards against an unsolvable challenge so we never loop forever.
+    const maxCounter = Math.max(cost * 10, 1000000);
+    for (let counter = 0; counter <= maxCounter; counter++) {
+      const counterBuf = Buffer.alloc(4);
+      counterBuf.writeUInt32BE(counter, 0);
+      const password = Buffer.concat([nonceBuf, counterBuf]);
+      const derived = crypto.pbkdf2Sync(password, saltBuf, cost, keyLength, digest);
+      if (derived.subarray(0, keyPrefixBuf.length).equals(keyPrefixBuf)) {
+        const payload = {
+          challenge: {
+            parameters: parameters,
+            signature: challenge.signature,
+          },
+          solution: { counter: counter, derivedKey: derived.toString("hex"), time: 0 },
+        };
+        return Buffer.from(JSON.stringify(payload), "utf-8").toString("base64");
+      }
+    }
+    return null;
   }
   /**
   async receiveReports() {
@@ -1360,10 +1521,12 @@ class Vaillant extends utils.Adapter {
     try {
       this.log.info("cleaned everything up...");
       this.adapterStopped = true;
-      this.updateInterval && clearInterval(this.updateInterval);
-      this.reauthInterval && clearInterval(this.reauthInterval);
-      this.reloginTimeout && clearTimeout(this.reloginTimeout);
-      this.refreshTokenInterval && clearInterval(this.refreshTokenInterval);
+      this.updateInterval && this.clearInterval(this.updateInterval);
+      this.statInterval && this.clearInterval(this.statInterval);
+      this.reauthInterval && this.clearInterval(this.reauthInterval);
+      this.reloginTimeout && this.clearTimeout(this.reloginTimeout);
+      this.refreshTimeout && this.clearTimeout(this.refreshTimeout);
+      this.refreshTokenInterval && this.clearInterval(this.refreshTokenInterval);
       callback();
     } catch {
       callback();
@@ -1635,7 +1798,7 @@ class Vaillant extends utils.Adapter {
           })
             .then(async (res) => {
               this.log.info(JSON.stringify(res.data));
-              this.refreshTimeout = setTimeout(async () => {
+              this.refreshTimeout = this.setTimeout(async () => {
                 this.log.info("Update devices");
                 await this.updateMyvDevices();
                 await this.updateMyvRooms();
