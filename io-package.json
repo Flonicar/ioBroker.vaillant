@@ -1,9 +1,9 @@
 {
   "common": {
     "name": "vaillant",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "news": {
-      "1.0.0": {
+      "1.0.1": {
         "en": "fix myVAILLANT login, please enter your password again. New settings page, stay logged in after restart, new data and controls",
         "de": "myVAILLANT-Login korrigiert, bitte Passwort erneut eingeben. Neue Einstellungsseite, angemeldet bleiben nach Neustart, neue Daten und Steuerungen",
         "ru": "Исправлен вход myVAILLANT, введите пароль заново. Новая страница настроек, сохранение сессии после перезапуска, новые данные и управление",
