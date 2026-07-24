@@ -82,12 +82,14 @@ class Vaillant extends utils.Adapter {
    */
   async onReady() {
     // Initialize your adapter here
-    const obj = await this.getForeignObjectAsync("system.config");
-    if (obj && obj.native && obj.native.secret) {
-      this.config.password = this.decrypt(obj.native.secret, this.config.password);
-    } else {
-      this.config.password = this.decrypt("Zgfr56gFe87jJOM", this.config.password);
+    // passwordv2 is auto-decrypted by js-controller (encryptedNative). The old XOR-encrypted
+    // "password" field is no longer used; users must re-enter their password once.
+    if (!this.config.passwordv2) {
+      this.log.error("No password set. Please open the adapter settings and enter your Vaillant App password again.");
+      this.setState("info.connection", false, true);
+      return;
     }
+    this.config.password = this.config.passwordv2;
     if (this.config.interval < 5) {
       this.log.warn("Interval under 5min is not recommended. Set it back to 5min");
       this.config.interval = 5;
@@ -1500,13 +1502,6 @@ class Vaillant extends utils.Adapter {
         },
       );
     });
-  }
-  decrypt(key, value) {
-    let result = "";
-    for (let i = 0; i < value.length; ++i) {
-      result += String.fromCharCode(key[i % key.length].charCodeAt(0) ^ value.charCodeAt(i));
-    }
-    return result;
   }
   makeid(length = 202) {
     let result = "";

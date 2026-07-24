@@ -1,0 +1,71 @@
+{
+  "i18n": false,
+  "type": "panel",
+  "items": {
+    "user": {
+      "type": "text",
+      "label": "Vaillant App User",
+      "sm": 12,
+      "md": 6,
+      "lg": 6
+    },
+    "passwordv2": {
+      "type": "password",
+      "label": "Vaillant App Password",
+      "sm": 12,
+      "md": 6,
+      "lg": 6
+    },
+    "myv": {
+      "type": "checkbox",
+      "label": "Use myVaillant App",
+      "newLine": true,
+      "sm": 12,
+      "md": 6,
+      "lg": 6
+    },
+    "location": {
+      "type": "text",
+      "label": "Vaillant App Location (e.g. germany, denmark, switzerland, austria, belgium)",
+      "newLine": true,
+      "sm": 12,
+      "md": 6,
+      "lg": 6
+    },
+    "interval": {
+      "type": "number",
+      "label": "Update interval in minutes. Don't use a too low value to prevent blocking.",
+      "min": 5,
+      "newLine": true,
+      "sm": 12,
+      "md": 6,
+      "lg": 6
+    },
+    "cleantype": {
+      "type": "checkbox",
+      "label": "Prevent deletion of all states before receiving new values. This keeps old states but avoids configuration objects being removed.",
+      "newLine": true,
+      "sm": 12,
+      "md": 12,
+      "lg": 12
+    },
+    "fetchReports": {
+      "type": "checkbox",
+      "label": "Fetch reports from the app.",
+      "newLine": true,
+      "sm": 12,
+      "md": 6,
+      "lg": 6
+    },
+    "fetchReportsLimit": {
+      "type": "number",
+      "label": "Number of last days for reports.",
+      "min": 1,
+      "max": 60,
+      "newLine": true,
+      "sm": 12,
+      "md": 6,
+      "lg": 6
+    }
+  }
+}

@@ -172,7 +172,7 @@
     "dataSource": "poll",
     "compact": true,
     "adminUI": {
-      "config": "materialize"
+      "config": "json"
     },
     "dependencies": [
       {
@@ -186,14 +186,14 @@
     ]
   },
   "protectedNative": [
-    "password"
+    "passwordv2"
   ],
   "encryptedNative": [
-    "password"
+    "passwordv2"
   ],
   "native": {
     "user": "",
-    "password": "",
+    "passwordv2": "",
     "interval": 15,
     "smartPhoneId": "",
     "cleantype": true,

@@ -272,6 +272,7 @@ zone/2/xxxx
 ### **WORK IN PROGRESS**
  - fix myVAILLANT login (adapts to Vaillant's new login protection)
  - stay logged in after a restart
+ - new settings page - please open the settings and enter your password again
  - new data: fault codes, energy and EEBUS info
  - new controls: ventilation, cooling days and holiday mode
 
