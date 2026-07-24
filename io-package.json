@@ -25,7 +25,7 @@
         "fr": "revenir le changement pour corriger le problème de sauvegarde",
         "it": "ripristinare la modifica per risolvere il problema di salvataggio",
         "es": "revertir el cambio para solucionar problemas",
-        "pl": "revert change to fix save issue",
+        "pl": "cofnięto zmianę, aby naprawić problem z zapisem",
         "uk": "перевернути зміни, щоб виправити проблему збереження",
         "zh-cn": "返回更改以修正保存问题"
       },
@@ -84,10 +84,6 @@
       "0.5.0": {
         "en": "Add custom command and max days for stats",
         "de": "Custom Commands hinzugefügt und max Tage für Statistiken hinzugefügt"
-      },
-      "0.4.0": {
-        "en": "Fix update for non tli devices",
-        "de": "Fix update für nicht tli Geräte"
       }
     },
     "messages": [
@@ -165,8 +161,7 @@
       "vaillant",
       "multiMATIC",
       "VR900",
-      "VR920",
-      "ioBroker"
+      "VR920"
     ],
     "licenseInformation": {
       "type": "free",
@@ -194,7 +189,7 @@
     ],
     "globalDependencies": [
       {
-        "admin": ">=7.6.17"
+        "admin": ">=7.6.20"
       }
     ]
   },
