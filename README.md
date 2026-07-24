@@ -47,6 +47,21 @@ vaillant.0.id.systemControlState.controlState.domesticHotWater01.operationMode O
 For Refresh and predefined
 `vaillant.0.id.remote`
 
+Predefined remote states under `vaillant.0.id.remote`:
+
+- `Refresh` / `RefreshStats` - trigger a data refresh
+- `boost` - domestic hot water boost (on/off)
+- `quickVeto` + `duration` - quick veto zone temperature (0 to disable)
+- `ventilationBoost` - ventilation boost (on/off)
+- `coolingForDays` - cooling for N days (0 = cancel)
+- `eebusEnabled` - enable/disable the EEBUS interface
+- `holiday` - holiday/away mode as json, e.g. `{"startDateTime":"2024-01-01T00:00:00.000Z","endDateTime":"2024-01-07T23:59:59.999Z","setpoint":10}`. Send an empty value (or `{}`) to cancel. `setpoint` is required for vrc700 controllers and rejected for tli. Malformed json is ignored (no request sent).
+- `ventilationOperationMode` / `ventilationFanStage` - use together with `ventilationIndex` to address the ventilation unit. `ventilationFanStage` also uses `ventilationFanStageType` (DAY or NIGHT).
+- `customCommand` - see below
+
+Read-only extra data (ported from mypyllant) appears under:
+`vaillant.0.id.troubleCodes`, `.rts`, `.mpc`, `.energyManagement`, `.eebus`
+
 ## Custom Command
 
 You can use custom Commmand remote for not predefined remotes
@@ -252,7 +267,12 @@ zone/2/xxxx
 
 ## Changelog
 
-<!-- ### **WORK IN PROGRESS** -->
+### **WORK IN PROGRESS**
+ - fix myVAILLANT login by solving the new ALTCHA proof-of-work challenge
+ - persist the OAuth session to survive restarts without a full login
+ - add read-only trouble codes, RTS, MPC, energy management and EEBUS data
+ - add remote commands: ventilation boost/mode/fan-stage, cooling for days, EEBUS toggle and holiday/away mode
+
 ### 0.7.5 (2025-07-09)
  - revert change to fix save issue
 

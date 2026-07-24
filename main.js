@@ -125,11 +125,13 @@ class Vaillant extends utils.Adapter {
         await this.clearOldStats();
         await this.updateMyStats();
         await this.updateMyvEfficiency();
+        await this.updateMyvExtras();
         this.updateInterval = this.setInterval(
           async () => {
             await this.updateMyvDevices();
             await this.updateMyvRooms();
             await this.updateMyvPvData();
+            await this.updateMyvExtras();
           },
           this.config.interval * 60 * 1000,
         );
@@ -462,6 +464,56 @@ class Vaillant extends utils.Adapter {
               },
               { command: "duration", name: "QuickVeto duration in minutes", type: "number", def: 3, role: "level" },
               {
+                command: "ventilationBoost",
+                name: "Ventilation Boost: True = Switch On, False = Switch Off",
+              },
+              {
+                command: "coolingForDays",
+                name: "Cooling for days: number of days (0 = cancel)",
+                type: "number",
+                def: 0,
+                role: "level",
+              },
+              {
+                command: "eebusEnabled",
+                name: "EEBUS interface: True = Enable, False = Disable",
+              },
+              {
+                command: "holiday",
+                name: "Holiday/Away mode as json (empty data = cancel)",
+                type: "json",
+                role: "json",
+                def: `{"startDateTime":"2024-01-01T00:00:00.000Z","endDateTime":"2024-01-07T23:59:59.999Z","setpoint":10}`,
+              },
+              {
+                command: "ventilationOperationMode",
+                name: "Ventilation operation mode (uses ventilationIndex, e.g. OFF, NORMAL, REDUCED)",
+                type: "string",
+                role: "text",
+                def: "NORMAL",
+              },
+              {
+                command: "ventilationFanStage",
+                name: "Ventilation max fan stage (uses ventilationIndex)",
+                type: "number",
+                def: 1,
+                role: "level",
+              },
+              {
+                command: "ventilationFanStageType",
+                name: "Ventilation fan stage type: DAY or NIGHT",
+                type: "string",
+                role: "text",
+                def: "DAY",
+              },
+              {
+                command: "ventilationIndex",
+                name: "Ventilation index used by ventilation commands",
+                type: "number",
+                def: 0,
+                role: "level",
+              },
+              {
                 command: "customCommand",
                 name: "Send custom command as json",
                 type: "json",
@@ -791,6 +843,53 @@ class Vaillant extends utils.Adapter {
           this.log.error(error);
           error.response && this.log.error(JSON.stringify(error.response.data));
         });
+    }
+  }
+  /**
+   * Fetches read-only extra data ported from mypyllant: diagnostic trouble codes, RTS
+   * statistics, MPC live power, energy management and EEBUS info. All use the default
+   * (tli) API base like mypyllant's get_api_base(). Missing endpoints (404) are ignored.
+   */
+  async updateMyvExtras() {
+    const base = "https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1";
+    const extras = [
+      { path: "/systems/$id/diagnostic-trouble-codes", channel: "troubleCodes", name: "Diagnostic Trouble Codes" },
+      { path: "/rts/$id/devices", channel: "rts", name: "RTS Statistics (cycles / operation time)" },
+      { path: "/hem/$id/mpc", channel: "mpc", name: "MPC live power usage per device" },
+      { path: "/eebus/energy-management/$id", channel: "energyManagement", name: "Energy Management" },
+      { path: "/ship/$id/self", channel: "eebus", name: "EEBUS" },
+    ];
+    for (const device of this.deviceArray) {
+      const id = device.systemId;
+      for (const extra of extras) {
+        const url = base + extra.path.replace("$id", id);
+        await this.requestClient({
+          method: "get",
+          url: url,
+          headers: {
+            Authorization: "Bearer " + this.session.access_token,
+          },
+        })
+          .then(async (res) => {
+            this.log.debug(JSON.stringify(res.data));
+            await this.setObjectNotExistsAsync(id + "." + extra.channel, {
+              type: "channel",
+              common: {
+                name: extra.name,
+              },
+              native: {},
+            });
+            this.json2iob.parse(id + "." + extra.channel, res.data, { forceIndex: true });
+          })
+          .catch((error) => {
+            if (error.response && (error.response.status === 404 || error.response.status === 400)) {
+              this.log.debug("No " + extra.channel + " data for " + id);
+              return;
+            }
+            this.log.error(error);
+            error.response && this.log.error(JSON.stringify(error.response.data));
+          });
+      }
     }
   }
   async refreshToken() {
@@ -1580,6 +1679,167 @@ class Vaillant extends utils.Adapter {
                 "/v1/systems/" +
                 deviceId +
                 "/domestic-hot-water/255/boost";
+            }
+          }
+          if (command === "ventilationBoost") {
+            // ventilation-boost works on both tli and vrc700 (mypyllant set_ventilation_boost)
+            method = state.val ? "POST" : "DELETE";
+            data = {};
+            url =
+              "https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/" +
+              deviceId +
+              "/tli/ventilation-boost";
+            if (identifier !== "tli") {
+              url =
+                "https://api.vaillant-group.com/service-connected-control/" +
+                identifier +
+                "/v1/systems/" +
+                deviceId +
+                "/ventilation-boost";
+            }
+          }
+          if (command === "coolingForDays") {
+            // mypyllant set_cooling_for_days / cancel_cooling_for_days.
+            // Only exactly 0 cancels. A positive finite integer starts cooling. Anything
+            // else (NaN, negative, fractional) is rejected so we never send a bad write.
+            const days = Number(state.val);
+            if (days === 0) {
+              method = "DELETE";
+              data = {};
+            } else if (Number.isInteger(days) && days > 0) {
+              method = "POST";
+              if (identifier !== "tli") {
+                data = { value: days };
+              } else {
+                const start = new Date();
+                const end = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
+                data = {
+                  startDateTime: start.toISOString(),
+                  endDateTime: end.toISOString(),
+                };
+              }
+            } else {
+              this.log.error("coolingForDays needs 0 (cancel) or a positive whole number of days");
+              return;
+            }
+            url =
+              "https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/" +
+              deviceId +
+              "/tli/cooling-for-days";
+            if (identifier !== "tli") {
+              url =
+                "https://api.vaillant-group.com/service-connected-control/" +
+                identifier +
+                "/v1/systems/" +
+                deviceId +
+                "/cooling-for-days";
+            }
+          }
+          if (command === "eebusEnabled") {
+            // mypyllant toggle_eebus: always tli base, PUT with {enabled}
+            method = "PUT";
+            data = { enabled: !!state.val };
+            url =
+              "https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/ship/" + deviceId + "/self/spine";
+          }
+          if (command === "holiday") {
+            // mypyllant set_holiday / cancel_holiday.
+            // Cancel ONLY on an explicit empty value. Any non-empty but malformed input
+            // aborts without a request, so a typo can never silently cancel an active holiday.
+            const raw = typeof state.val === "string" ? state.val.trim() : state.val;
+            if (!raw || raw === "{}" || raw === "cancel") {
+              method = "DELETE";
+              data = {};
+            } else {
+              let holidayData;
+              try {
+                holidayData = JSON.parse(raw);
+              } catch (error) {
+                this.log.error("Failed to parse holiday json, no request sent. Send empty value to cancel.");
+                this.log.error(error);
+                return;
+              }
+              if (!holidayData || !holidayData.startDateTime || !holidayData.endDateTime) {
+                this.log.error("holiday needs startDateTime and endDateTime. Send empty value to cancel.");
+                return;
+              }
+              if (new Date(holidayData.startDateTime) >= new Date(holidayData.endDateTime)) {
+                this.log.error("holiday startDateTime must be before endDateTime");
+                return;
+              }
+              method = "POST";
+              // Build a clean payload: vrc700 requires setpoint, tli must not receive it.
+              data = { startDateTime: holidayData.startDateTime, endDateTime: holidayData.endDateTime };
+              if (identifier !== "tli") {
+                if (holidayData.setpoint == null) {
+                  this.log.error("holiday on vrc700 controllers requires a numeric setpoint");
+                  return;
+                }
+                data.setpoint = holidayData.setpoint;
+              }
+            }
+            url =
+              "https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/" +
+              deviceId +
+              "/tli/away-mode";
+            if (identifier !== "tli") {
+              // vrc700 uses /holiday and accepts a setpoint
+              url =
+                "https://api.vaillant-group.com/service-connected-control/" +
+                identifier +
+                "/v1/systems/" +
+                deviceId +
+                "/holiday";
+            }
+          }
+          if (command === "ventilationIndex" || command === "ventilationFanStageType") {
+            // Local selectors only, used by the ventilation commands. Never sent to the API.
+            return;
+          }
+          if (command === "ventilationOperationMode" || command === "ventilationFanStage") {
+            // mypyllant set_ventilation_operation_mode / set_ventilation_fan_stage.
+            // Both need a ventilation index, read from the sibling ventilationIndex state.
+            const base = id.split(".").slice(0, -1).join(".");
+            const indexState = await this.getStateAsync(base + ".ventilationIndex");
+            const ventilationIndex = indexState && indexState.val != null ? indexState.val : 0;
+            method = "PATCH";
+            let postfix;
+            if (command === "ventilationOperationMode") {
+              postfix = "operation-mode";
+              data = { operationMode: state.val };
+            } else {
+              // fan-stage: vrc700 needs a DAY/NIGHT specific endpoint, tli needs the type in the body.
+              const typeState = await this.getStateAsync(base + ".ventilationFanStageType");
+              const fanStageType = (typeState && typeState.val ? String(typeState.val) : "DAY").toUpperCase();
+              if (fanStageType !== "DAY" && fanStageType !== "NIGHT") {
+                this.log.error("ventilationFanStageType must be DAY or NIGHT");
+                return;
+              }
+              if (identifier !== "tli") {
+                postfix = fanStageType.toLowerCase() + "-fan-stage";
+                data = { maximumFanStage: Number(state.val) };
+              } else {
+                postfix = "fan-stage";
+                data = { maximumFanStage: Number(state.val), type: fanStageType };
+              }
+            }
+            url =
+              "https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/" +
+              deviceId +
+              "/tli/ventilation/" +
+              ventilationIndex +
+              "/" +
+              postfix;
+            if (identifier !== "tli") {
+              url =
+                "https://api.vaillant-group.com/service-connected-control/" +
+                identifier +
+                "/v1/systems/" +
+                deviceId +
+                "/ventilation/" +
+                ventilationIndex +
+                "/" +
+                postfix;
             }
           }
           if (command === "quickVeto") {
