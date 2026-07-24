@@ -48,6 +48,14 @@
   "engines": {
     "node": ">=22"
   },
+  "files": [
+    "admin/",
+    "lib/",
+    "docs/",
+    "io-package.json",
+    "LICENSE",
+    "main.js"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TA2k/ioBroker.vaillant.git"
