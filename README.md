@@ -150,7 +150,7 @@ zone/2/xxxx
 ```
 
 ```json
-{w
+{
   "url": "ventilation/0/day-fan-stage",
   "data": { "maximumDayFanStage": 3 }
 }
@@ -270,7 +270,7 @@ zone/2/xxxx
 ## Changelog
 
 ### **WORK IN PROGRESS**
- - fix myVAILLANT login (adapts to Vaillant's new login protection)
+ - fix myVAILLANT login. Please enter your password again
  - stay logged in after a restart
  - new settings page - please open the settings and enter your password again
  - new data: fault codes, energy and EEBUS info
