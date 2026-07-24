@@ -4,68 +4,108 @@
   "items": {
     "user": {
       "type": "text",
-      "label": "Vaillant App User",
+      "label": {
+        "en": "Vaillant App User",
+        "de": "Vaillant App Benutzer"
+      },
+      "xs": 12,
       "sm": 12,
       "md": 6,
-      "lg": 6
+      "lg": 6,
+      "xl": 6
     },
     "passwordv2": {
       "type": "password",
-      "label": "Vaillant App Password",
+      "label": {
+        "en": "Vaillant App Password",
+        "de": "Vaillant App Passwort"
+      },
+      "xs": 12,
       "sm": 12,
       "md": 6,
-      "lg": 6
+      "lg": 6,
+      "xl": 6
     },
     "myv": {
       "type": "checkbox",
-      "label": "Use myVaillant App",
+      "label": {
+        "en": "Use myVaillant App",
+        "de": "myVaillant App verwenden"
+      },
       "newLine": true,
+      "xs": 12,
       "sm": 12,
       "md": 6,
-      "lg": 6
+      "lg": 6,
+      "xl": 6
     },
     "location": {
       "type": "text",
-      "label": "Vaillant App Location (e.g. germany, denmark, switzerland, austria, belgium)",
+      "label": {
+        "en": "Vaillant App Location (e.g. germany, denmark, switzerland, austria, belgium)",
+        "de": "Vaillant App Standort (z. B. germany, denmark, switzerland, austria, belgium)"
+      },
       "newLine": true,
+      "xs": 12,
       "sm": 12,
       "md": 6,
-      "lg": 6
+      "lg": 6,
+      "xl": 6
     },
     "interval": {
       "type": "number",
-      "label": "Update interval in minutes. Don't use a too low value to prevent blocking.",
+      "label": {
+        "en": "Update interval in minutes. Don't use a too low value to prevent blocking.",
+        "de": "Aktualisierungsintervall in Minuten. Keinen zu niedrigen Wert verwenden, um Blockierungen zu vermeiden."
+      },
       "min": 5,
       "newLine": true,
+      "xs": 12,
       "sm": 12,
       "md": 6,
-      "lg": 6
+      "lg": 6,
+      "xl": 6
     },
     "cleantype": {
       "type": "checkbox",
-      "label": "Prevent deletion of all states before receiving new values. This keeps old states but avoids configuration objects being removed.",
+      "label": {
+        "en": "Prevent deletion of all states before receiving new values. This keeps old states but avoids configuration objects being removed.",
+        "de": "Löschen aller States vor dem Empfang neuer Werte verhindern. Dies behält alte States, verhindert aber das Entfernen von Konfigurationsobjekten."
+      },
       "newLine": true,
+      "xs": 12,
       "sm": 12,
       "md": 12,
-      "lg": 12
+      "lg": 12,
+      "xl": 12
     },
     "fetchReports": {
       "type": "checkbox",
-      "label": "Fetch reports from the app.",
+      "label": {
+        "en": "Fetch reports from the app.",
+        "de": "Berichte aus der App abrufen."
+      },
       "newLine": true,
+      "xs": 12,
       "sm": 12,
       "md": 6,
-      "lg": 6
+      "lg": 6,
+      "xl": 6
     },
     "fetchReportsLimit": {
       "type": "number",
-      "label": "Number of last days for reports.",
+      "label": {
+        "en": "Number of last days for reports.",
+        "de": "Anzahl der letzten Tage für Berichte."
+      },
       "min": 1,
       "max": 60,
       "newLine": true,
+      "xs": 12,
       "sm": 12,
       "md": 6,
-      "lg": 6
+      "lg": 6,
+      "xl": 6
     }
   }
 }

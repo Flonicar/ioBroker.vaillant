@@ -13,7 +13,6 @@
     "http-cookie-agent": "^8.0.0",
     "json2iob": "^2.6.25",
     "qs": "^6.15.3",
-    "request": "^2.88.2",
     "tough-cookie": "^6.0.2",
     "traverse": "^0.6.11"
   },
@@ -23,16 +22,11 @@
     "@alcalzone/release-script-plugin-iobroker": "^5.2.0",
     "@alcalzone/release-script-plugin-license": "^5.2.0",
     "@alcalzone/release-script-plugin-manual-review": "^5.2.0",
-    "@eslint/js": "^10.0.1",
+    "@iobroker/eslint-config": "^2.3.4",
     "@iobroker/testing": "^5.3.0",
     "@tsconfig/node22": "^22.0.5",
     "@types/node": "^22.20.1",
-    "eslint": "^10.7.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.6",
-    "globals": "^17.7.0",
-    "prettier": "^3.9.6",
-    "typescript": "~7.0.2"
+    "typescript": "~6.0.3"
   },
   "homepage": "https://github.com/TA2k/ioBroker.vaillant",
   "keywords": [
@@ -66,7 +60,7 @@
     "test:integration": "mocha test/integration --exit",
     "test": "npm run test:js && npm run test:package",
     "check": "tsc --noEmit -p tsconfig.check.json",
-    "lint": "eslint .",
+    "lint": "eslint -c eslint.config.mjs .",
     "translate": "translate-adapter",
     "release": "release-script --all"
   },
