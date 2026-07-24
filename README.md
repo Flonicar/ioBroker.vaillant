@@ -268,8 +268,7 @@ zone/2/xxxx
 ```
 
 ## Changelog
-
-### **WORK IN PROGRESS**
+### 1.0.0 (2026-07-24)
  - fix myVAILLANT login. Please enter your password again
  - stay logged in after a restart
  - new settings page - please open the settings and enter your password again

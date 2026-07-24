@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "vaillant",
-    "version": "0.7.5",
+    "version": "1.0.0",
     "news": {
+      "1.0.0": {
+        "en": "fix myVAILLANT login, please enter your password again. New settings page, stay logged in after restart, new data and controls",
+        "de": "myVAILLANT-Login korrigiert, bitte Passwort erneut eingeben. Neue Einstellungsseite, angemeldet bleiben nach Neustart, neue Daten und Steuerungen",
+        "ru": "Исправлен вход myVAILLANT, введите пароль заново. Новая страница настроек, сохранение сессии после перезапуска, новые данные и управление",
+        "pt": "corrige o login myVAILLANT, insira a senha novamente. Nova página de configurações, permanece conectado após reiniciar, novos dados e controles",
+        "nl": "myVAILLANT-login gerepareerd, voer je wachtwoord opnieuw in. Nieuwe instellingenpagina, ingelogd blijven na herstart, nieuwe data en bediening",
+        "fr": "correction de la connexion myVAILLANT, veuillez saisir à nouveau votre mot de passe. Nouvelle page de paramètres, connexion conservée après redémarrage, nouvelles données et commandes",
+        "it": "corretto il login myVAILLANT, inserisci di nuovo la password. Nuova pagina impostazioni, resta connesso dopo il riavvio, nuovi dati e controlli",
+        "es": "corrige el inicio de sesión de myVAILLANT, vuelve a introducir tu contraseña. Nueva página de ajustes, permanece conectado tras reiniciar, nuevos datos y controles",
+        "pl": "naprawiono logowanie myVAILLANT, wprowadź ponownie hasło. Nowa strona ustawień, pozostań zalogowany po restarcie, nowe dane i sterowanie",
+        "uk": "виправлено вхід myVAILLANT, введіть пароль знову. Нова сторінка налаштувань, збереження сесії після перезапуску, нові дані та керування",
+        "zh-cn": "修复 myVAILLANT 登录，请重新输入密码。新的设置页面，重启后保持登录，新的数据和控制"
+      },
       "0.7.5": {
         "en": "revert change to fix save issue",
         "de": "revert-änderung zu beheben speicherproblem",
