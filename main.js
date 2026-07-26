@@ -1847,48 +1847,102 @@ class Vaillant extends utils.Adapter {
                             }/zones/0/quick-veto`;
                         }
                     }
-                    const commands = {
-                        operationModeHeating: { url: "heating/operation-mode", parameter: "operationMode" },
-                        manualModeSetpoint: { url: "manual-mode-setpoint", parameter: "setpoint" },
-                        manualModeSetpointHeating: { url: "manual-mode-setpoint", parameter: "setpoint" },
-                        manualModeSetpointCooling: { url: "manual-mode-setpoint", parameter: "setpoint" },
-                    };
+                    // Explicit write-endpoint map (issue #112). The read API exposes camelCase
+                    // field names that are NOT valid write endpoints, and tli vs vrc700 use
+                    // different path shapes. Confirmed on vrc700 hardware for the marked entries.
+                    // API zone/dhw indices are 0-based while ioBroker states are 1-based -> we -1.
                     if (id.split(".")[4].includes("zones")) {
-                        const zoneId = Number(id.split(".")[4].replace("zones", "")); //- 1;
-                        this.log.debug(`zoneId: ${zoneId}`);
-                        this.log.debug(`deviceId: ${deviceId}`);
+                        const stateZone = Number(id.split(".")[4].replace("zones", ""));
+                        const isTli = identifier === "tli";
+                        // vrc700 is 0-based (confirmed: state zones01 -> API zone 0). For tli we keep
+                        // the previous 1:1 index behaviour to avoid regressing working tli setups.
+                        const zoneId = isTli ? stateZone : stateZone > 0 ? stateZone - 1 : 0;
+                        this.log.debug(`zoneId: ${zoneId} (state ${stateZone}), deviceId: ${deviceId}, identifier: ${identifier}`);
                         method = "PATCH";
-                        let parameter = command;
-                        if (commands[command]) {
-                            parameter = commands[command].parameter;
-                        }
-
-                        data[parameter] = state.val;
-                        if (command.indexOf("manualModeSetpoint") !== -1) {
-                            const type = command.replace("manualModeSetpoint", "");
-                            if (type) {
-                                data["type"] = type.toLocaleUpperCase();
-                            }
-                        }
-                        const urlPostfix = commands[command] ? commands[command].url : command;
-                        url = `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/${deviceId}/tli/zones/${
-                            zoneId
-                        }/${urlPostfix}`;
-                        if (identifier !== "tli") {
-                            url = `https://api.vaillant-group.com/service-connected-control/${identifier}/v1/systems/${deviceId}/zones/${
-                                zoneId
-                            }/${urlPostfix}`;
-                        }
+                        // command -> { path per controller, body key, optional extra body }
+                        const zoneCommands = {
+                            // confirmed on vrc700: operation mode
+                            operationModeHeating: {
+                                vrc700: "zone/$z/heating/operation-mode",
+                                tli: "zones/$z/heating-operation-mode",
+                                key: "operationMode",
+                            },
+                            heatingOperationMode: {
+                                vrc700: "zone/$z/heating/operation-mode",
+                                tli: "zones/$z/heating-operation-mode",
+                                key: "operationMode",
+                            },
+                            operationModeCooling: {
+                                vrc700: "zone/$z/cooling/operation-mode",
+                                tli: "zones/$z/operation-mode",
+                                key: "operationMode",
+                                tliExtra: { type: "COOLING" },
+                            },
+                            coolingOperationMode: {
+                                vrc700: "zone/$z/cooling/operation-mode",
+                                tli: "zones/$z/operation-mode",
+                                key: "operationMode",
+                                tliExtra: { type: "COOLING" },
+                            },
+                            // confirmed on vrc700: comfort room temperature
+                            dayTemperatureHeating: {
+                                vrc700: "zone/$z/heating/comfort-room-temperature",
+                                tli: "zones/$z/manual-mode-setpoint",
+                                key: "comfortRoomTemperature",
+                                tliKey: "setpoint",
+                                tliExtra: { type: "HEATING" },
+                            },
+                            comfortRoomTemperature: {
+                                vrc700: "zone/$z/heating/comfort-room-temperature",
+                                tli: "zones/$z/manual-mode-setpoint",
+                                key: "comfortRoomTemperature",
+                                tliKey: "setpoint",
+                                tliExtra: { type: "HEATING" },
+                            },
+                            setBackTemperature: {
+                                vrc700: "zone/$z/heating/set-back-temperature",
+                                tli: "zones/$z/set-back-temperature",
+                                key: "setBackTemperature",
+                            },
+                            manualModeSetpointHeating: {
+                                // vrc700 /zone/{i}/heating/manual-mode-setpoint returns 404 (per mypyllant);
+                                // the real app uses comfort-room-temperature instead.
+                                vrc700: "zone/$z/heating/comfort-room-temperature",
+                                tli: "zones/$z/manual-mode-setpoint",
+                                key: "comfortRoomTemperature",
+                                tliKey: "setpoint",
+                                tliExtra: { type: "HEATING" },
+                            },
+                            manualModeSetpointCooling: {
+                                // vrc700 cooling setpoint uses /zone/{i}/cooling/setpoint with {setpoint};
+                                // tli uses zones/{i}/setpoint-cooling, also just {setpoint} (no type).
+                                vrc700: "zone/$z/cooling/setpoint",
+                                tli: "zones/$z/setpoint-cooling",
+                                key: "setpoint",
+                            },
+                        };
+                        const base = isTli
+                            ? `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/${deviceId}/tli/`
+                            : `https://api.vaillant-group.com/service-connected-control/${identifier}/v1/systems/${deviceId}/`;
 
                         if (command === "desiredRoomTemperatureSetpoint") {
-                            url = `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/${
-                                deviceId
-                            }/tli/zones/${zoneId}/quickVeto`;
-                            if (identifier !== "tli") {
-                                url = `https://api.vaillant-group.com/service-connected-control/${identifier}/v1/systems/${
-                                    deviceId
-                                }/zones/${zoneId}/quickVeto`;
+                            // quick veto (temperature setpoint outside a time program)
+                            data = { desiredRoomTemperatureSetpoint: state.val };
+                            url = isTli ? `${base}zones/${zoneId}/quick-veto` : `${base}zone/${zoneId}/heating/quick-veto`;
+                        } else if (zoneCommands[command]) {
+                            const map = zoneCommands[command];
+                            const pathTemplate = (isTli ? map.tli : map.vrc700).replace("$z", zoneId);
+                            const bodyKey = isTli && map.tliKey ? map.tliKey : map.key;
+                            data = {};
+                            data[bodyKey] = state.val;
+                            const extra = isTli ? map.tliExtra : map.vrc700Extra;
+                            if (extra) {
+                                Object.assign(data, extra);
                             }
+                            url = base + pathTemplate;
+                        } else {
+                            this.log.error(`No write mapping for zone command "${command}". Use remote.customCommand instead.`);
+                            return;
                         }
                     }
                     if (id.split(".")[4].includes("circuits")) {
@@ -1910,36 +1964,34 @@ class Vaillant extends utils.Adapter {
                         const idArray = id.split(".");
                         idArray.pop();
                         idArray.push("index");
-                        const index = await this.getStateAsync(idArray.join("."));
-                        this.log.debug(`index: ${index}`);
-                        this.log.debug(`deviceId: ${deviceId}`);
-                        method = state.val ? "POST" : "DELETE";
-                        data = {};
-                        url = `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/${
-                            deviceId
-                        }/domesticHotWater/${index.val}/${command}`;
-                        if (identifier !== "tli") {
-                            url = `https://api.vaillant-group.com/service-connected-control/${identifier}/v1/systems/${
-                                deviceId
-                            }/domesticHotWater/${index.val}/${command}`;
-                        }
-                        if (command === "setPoint") {
-                            data = {
-                                setPoint: state.val,
-                            };
-                            url = `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/${
-                                deviceId
-                            }/domesticHotWater/${index.val}/temperature`;
-                            if (identifier !== "tli") {
-                                url = `https://api.vaillant-group.com/service-connected-control/${identifier}/v1/systems/${
-                                    deviceId
-                                }/domesticHotWater/${index.val}/temperature`;
-                            }
-                        }
-                        if (command === "operationMode") {
-                            data = {
-                                operationMode: state.val,
-                            };
+                        const indexState = await this.getStateAsync(idArray.join("."));
+                        const dhwIndex = indexState && indexState.val != null ? indexState.val : 255;
+                        const isTli = identifier === "tli";
+                        this.log.debug(`dhwIndex: ${dhwIndex}, deviceId: ${deviceId}, identifier: ${identifier}`);
+                        const base = isTli
+                            ? `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/${deviceId}/tli/`
+                            : `https://api.vaillant-group.com/service-connected-control/${identifier}/v1/systems/${deviceId}/`;
+
+                        if (command === "boost") {
+                            // boost on/off - POST to start, DELETE to cancel
+                            method = state.val ? "POST" : "DELETE";
+                            data = {};
+                            url = `${base}domestic-hot-water/${dhwIndex}/boost`;
+                        } else if (command === "tappingSetpoint" || command === "setPoint" || command === "setpoint") {
+                            // confirmed on vrc700: DHW temperature. Body key is "setpoint".
+                            method = "PATCH";
+                            data = { setpoint: state.val };
+                            url = `${base}domestic-hot-water/${dhwIndex}/temperature`;
+                        } else if (command === "operationMode" || command === "operationModeDomesticHotWater") {
+                            // confirmed on vrc700: DHW operation mode
+                            method = "PATCH";
+                            data = { operationMode: state.val };
+                            url = `${base}domestic-hot-water/${dhwIndex}/operation-mode`;
+                        } else {
+                            this.log.error(
+                                `No write mapping for domestic hot water command "${command}". Use remote.customCommand instead.`,
+                            );
+                            return;
                         }
                     }
 

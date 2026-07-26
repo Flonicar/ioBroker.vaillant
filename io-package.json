@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "vaillant",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "news": {
+      "1.0.2": {
+        "en": "fix writing settings (temperature, operation mode) for VRC700 controllers",
+        "de": "Schreiben von Einstellungen (Temperatur, Betriebsmodus) für VRC700-Regler korrigiert",
+        "ru": "Исправлена запись настроек (температура, режим работы) для контроллеров VRC700",
+        "pt": "corrige a gravação de definições (temperatura, modo de operação) para controladores VRC700",
+        "nl": "schrijven van instellingen (temperatuur, bedrijfsmodus) voor VRC700-regelaars gerepareerd",
+        "fr": "correction de l'écriture des paramètres (température, mode de fonctionnement) pour les régulateurs VRC700",
+        "it": "corretta la scrittura delle impostazioni (temperatura, modalità di funzionamento) per i regolatori VRC700",
+        "es": "corrige la escritura de ajustes (temperatura, modo de funcionamiento) para controladores VRC700",
+        "pl": "naprawiono zapisywanie ustawień (temperatura, tryb pracy) dla sterowników VRC700",
+        "uk": "виправлено запис налаштувань (температура, режим роботи) для контролерів VRC700",
+        "zh-cn": "修复 VRC700 控制器的设置写入（温度、运行模式）"
+      },
       "1.0.1": {
         "en": "fix myVAILLANT login, please enter your password again. New settings page, stay logged in after restart, new data and controls",
         "de": "myVAILLANT-Login korrigiert, bitte Passwort erneut eingeben. Neue Einstellungsseite, angemeldet bleiben nach Neustart, neue Daten und Steuerungen",

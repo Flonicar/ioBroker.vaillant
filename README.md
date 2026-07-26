@@ -268,6 +268,9 @@ zone/2/xxxx
 ```
 
 ## Changelog
+### 1.0.2 (2026-07-26)
+ - fix changing values like temperature and operation mode from the objects (VRC700). Zone and hot water settings now write to the correct endpoint
+
 ### 1.0.1 (2026-07-24)
  - replaced the deprecated request library with axios
  - migrated to @iobroker/eslint-config and updated dependencies
