@@ -1920,6 +1920,12 @@ class Vaillant extends utils.Adapter {
                                 tli: "zones/$z/setpoint-cooling",
                                 key: "setpoint",
                             },
+                            setpointCooling: {
+                                // same endpoint as manualModeSetpointCooling (real API field name in cooling config)
+                                vrc700: "zone/$z/cooling/setpoint",
+                                tli: "zones/$z/setpoint-cooling",
+                                key: "setpoint",
+                            },
                         };
                         const base = isTli
                             ? `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/${deviceId}/tli/`
@@ -1941,26 +1947,53 @@ class Vaillant extends utils.Adapter {
                             }
                             url = base + pathTemplate;
                         } else {
-                            this.log.error(`No write mapping for zone command "${command}". Use remote.customCommand instead.`);
+                            this.log.warn(
+                                `No write mapping for zone state "${id}" (command "${command}"). ` +
+                                    `Use remote.customCommand instead, e.g. {"url":"zone/${zoneId}/heating/operation-mode","data":{"operationMode":"AUTO"}}`,
+                            );
                             return;
                         }
                     }
                     if (id.split(".")[4].includes("circuits")) {
-                        const circuitsId = Number(id.split(".")[4].replace("circuits", "")) - 1;
-                        this.log.debug(`circuits: ${circuitsId}`);
-                        this.log.debug(`deviceId: ${deviceId}`);
-                        method = "PATCH";
-                        data[command] = state.val;
-                        url = `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/${
-                            deviceId
-                        }/tli/circuits/${circuitsId}/quickVeto`;
-                        if (identifier !== "tli") {
-                            url = `https://api.vaillant-group.com/service-connected-control/${identifier}/v1/systems/${deviceId}/circuits/${
-                                circuitsId
-                            }/quickVeto`;
+                        // Endpoints from APK 3.9.0 + mypyllant. Path is /circuit/{i}/ (singular).
+                        // Index 0-based for vrc700; tli kept 1:1 to avoid regressing existing setups.
+                        const stateCircuit = Number(id.split(".")[4].replace("circuits", ""));
+                        const isTli = identifier === "tli";
+                        const circuitsId = isTli ? stateCircuit : stateCircuit > 0 ? stateCircuit - 1 : 0;
+                        this.log.debug(
+                            `circuitsId: ${circuitsId} (state ${stateCircuit}), deviceId: ${deviceId}, identifier: ${identifier}`,
+                        );
+                        const base = isTli
+                            ? `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/${deviceId}/tli/`
+                            : `https://api.vaillant-group.com/service-connected-control/${identifier}/v1/systems/${deviceId}/`;
+                        if (command === "heatingCurve") {
+                            method = "PATCH";
+                            data = isTli ? { heatingCurve: state.val } : { setPoint: state.val };
+                            url = `${base}circuit/${circuitsId}/heating-curve`;
+                        } else if (command === "minFlowTemperatureSetpoint" || command === "heatingFlowTemperatureMinimumSetpoint") {
+                            method = "PATCH";
+                            data = { minFlowTemperatureSetpoint: state.val };
+                            url = `${base}circuit/${circuitsId}/min-flow-temperature-setpoint`;
+                        } else if (command === "heatDemandLimitedByOutsideTemperature") {
+                            method = "POST";
+                            if (isTli) {
+                                data = { heatDemandLimitedByOutsideTemperature: state.val };
+                                url = `${base}circuit/${circuitsId}/heat-demand-limited-by-outside-temperature`;
+                            } else {
+                                data = { setpoint: state.val };
+                                url = `https://api.vaillant-group.com/service-connected-control/system-control/v1/systems/${deviceId}/circuits/${circuitsId}/heat-demand-limited-by-outside-temperature`;
+                            }
+                        } else {
+                            this.log.warn(
+                                `No write mapping for circuit state "${id}" (command "${command}"). ` +
+                                    `Use remote.customCommand instead, e.g. {"url":"circuit/${circuitsId}/heating-curve","data":{"heatingCurve":1.2}}`,
+                            );
+                            return;
                         }
                     }
-                    if (id.split(".")[4].includes("domesticHotWater")) {
+                    // VRC700 exposes this branch as "dhw01", tli as "domesticHotWater01"
+                    // (the API renames domesticHotWater -> dhw for vrc700). Match both.
+                    if (id.split(".")[4].includes("domesticHotWater") || id.split(".")[4].includes("dhw")) {
                         const idArray = id.split(".");
                         idArray.pop();
                         idArray.push("index");
@@ -1982,14 +2015,52 @@ class Vaillant extends utils.Adapter {
                             method = "PATCH";
                             data = { setpoint: state.val };
                             url = `${base}domestic-hot-water/${dhwIndex}/temperature`;
-                        } else if (command === "operationMode" || command === "operationModeDomesticHotWater") {
+                        } else if (
+                            command === "operationMode" ||
+                            command === "operationModeDomesticHotWater" ||
+                            command === "operationModeDhw"
+                        ) {
                             // confirmed on vrc700: DHW operation mode
                             method = "PATCH";
                             data = { operationMode: state.val };
                             url = `${base}domestic-hot-water/${dhwIndex}/operation-mode`;
                         } else {
-                            this.log.error(
-                                `No write mapping for domestic hot water command "${command}". Use remote.customCommand instead.`,
+                            this.log.warn(
+                                `No write mapping for domestic hot water state "${id}" (command "${command}"). ` +
+                                    `Use remote.customCommand instead, e.g. {"url":"domestic-hot-water/${dhwIndex}/temperature","data":{"setpoint":55}}`,
+                            );
+                            return;
+                        }
+                    }
+
+                    if (id.split(".")[4].includes("ventilation")) {
+                        // configuration.ventilationNN.* (real API field names: operationModeVentilation,
+                        // maximumDayFanStage, maximumNightFanStage). Endpoints from APK 3.9.0, body keys
+                        // per mypyllant (fan-stage verified live on VRC700: only maximumFanStage in body).
+                        const stateVent = Number(id.split(".")[4].replace("ventilation", ""));
+                        const isTli = identifier === "tli";
+                        const ventIndex = isTli ? stateVent : stateVent > 0 ? stateVent - 1 : 0;
+                        const base = isTli
+                            ? `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/${deviceId}/tli/`
+                            : `https://api.vaillant-group.com/service-connected-control/${identifier}/v1/systems/${deviceId}/`;
+                        method = "PATCH";
+                        if (command === "operationModeVentilation") {
+                            data = { operationMode: state.val };
+                            url = `${base}ventilation/${ventIndex}/operation-mode`;
+                        } else if (command === "maximumDayFanStage" || command === "maximumNightFanStage") {
+                            const stage = command === "maximumDayFanStage" ? "day" : "night";
+                            if (isTli) {
+                                data = { maximumFanStage: Number(state.val), type: stage.toUpperCase() };
+                                url = `${base}ventilation/${ventIndex}/fan-stage`;
+                            } else {
+                                // vrc700: separate day/night endpoint, body only maximumFanStage
+                                data = { maximumFanStage: Number(state.val) };
+                                url = `${base}ventilation/${ventIndex}/${stage}-fan-stage`;
+                            }
+                        } else {
+                            this.log.warn(
+                                `No write mapping for ventilation state "${id}" (command "${command}"). ` +
+                                    `Use remote.customCommand instead, e.g. {"url":"ventilation/${ventIndex}/operation-mode","data":{"operationMode":"AUTO"}}`,
                             );
                             return;
                         }
@@ -2030,7 +2101,10 @@ class Vaillant extends utils.Adapter {
                     this.log.debug(url);
                     this.log.debug(JSON.stringify(data));
                     if (!url) {
-                        this.log.error("No configuration supported please use customCommand");
+                        this.log.warn(
+                            `No predefined write mapping for "${id}". Use remote.customCommand instead ` +
+                                `(see README). This state category is not directly writable yet.`,
+                        );
                         return;
                     }
                     await this.requestClient({

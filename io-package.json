@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "vaillant",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "news": {
+      "1.0.3": {
+        "en": "fix writing DHW (dhw), circuit and ventilation settings for VRC700; clearer log when a value is not directly writable",
+        "de": "Schreiben von Warmwasser- (dhw), Kreis- und Lüftungseinstellungen für VRC700 korrigiert; klarere Logmeldung, wenn ein Wert nicht direkt schreibbar ist",
+        "ru": "Исправлена запись настроек ГВС (dhw), контура и вентиляции для VRC700; понятнее сообщение в журнале, если значение нельзя записать напрямую",
+        "pt": "corrige a gravação de definições de AQS (dhw), circuito e ventilação para VRC700; mensagem de registo mais clara quando um valor não é gravável diretamente",
+        "nl": "schrijven van warmwater- (dhw), circuit- en ventilatie-instellingen voor VRC700 gerepareerd; duidelijkere logmelding als een waarde niet direct schrijfbaar is",
+        "fr": "correction de l'écriture des paramètres ECS (dhw), circuit et ventilation pour VRC700 ; message de journal plus clair lorsqu'une valeur n'est pas directement modifiable",
+        "it": "corretta la scrittura delle impostazioni ACS (dhw), circuito e ventilazione per VRC700; messaggio di log più chiaro quando un valore non è scrivibile direttamente",
+        "es": "corrige la escritura de ajustes de ACS (dhw), circuito y ventilación para VRC700; mensaje de registro más claro cuando un valor no se puede escribir directamente",
+        "pl": "naprawiono zapisywanie ustawień CWU (dhw), obiegu i wentylacji dla VRC700; czytelniejszy komunikat w dzienniku, gdy wartości nie można zapisać bezpośrednio",
+        "uk": "виправлено запис налаштувань ГВП (dhw), контуру та вентиляції для VRC700; зрозуміліше повідомлення журналу, коли значення не можна записати напряму",
+        "zh-cn": "修复 VRC700 的热水（dhw）、回路和通风设置写入；当某个值不可直接写入时提供更清晰的日志"
+      },
       "1.0.2": {
         "en": "fix writing settings (temperature, operation mode) for VRC700 controllers",
         "de": "Schreiben von Einstellungen (Temperatur, Betriebsmodus) für VRC700-Regler korrigiert",

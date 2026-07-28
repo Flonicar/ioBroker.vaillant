@@ -268,6 +268,10 @@ zone/2/xxxx
 ```
 
 ## Changelog
+### 1.0.3 (2026-07-28)
+ - fix writing hot water (dhw), circuit and ventilation settings from the objects (VRC700)
+ - clearer log message with a customCommand example when a value is not directly writable
+
 ### 1.0.2 (2026-07-26)
  - fix changing values like temperature and operation mode from the objects (VRC700). Zone and hot water settings now write to the correct endpoint
 
