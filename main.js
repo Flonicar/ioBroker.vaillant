@@ -624,7 +624,9 @@ class Vaillant extends utils.Adapter {
                     if (res.headers.etag) {
                         this.etags[url] = res.headers.etag;
                     }
-                    this.json2iob.parse(id, res.data, {
+                    // Drop null fields (e.g. currentHumidity) so json2iob keeps a stable state
+                    // type and history adapters don't complain about type flips.
+                    this.json2iob.parse(id, this.removeNull(res.data), {
                         write: true,
                         channelName: "Rooms",
                         preferedArrayName: "roomConfiguration/name",
@@ -1542,6 +1544,31 @@ class Vaillant extends utils.Adapter {
             ms = 0;
         }
         return new Promise(resolve => this.setTimeout(resolve, ms));
+    }
+    /**
+     * Recursively drops keys whose value is null so json2iob does not create the state as
+     * type "mixed" and later flip it to "number" once a real value arrives. That type flip
+     * is what makes history/charting adapters complain (e.g. rooms currentHumidity is often
+     * null). Removing the key just skips the update and keeps the last known value.
+     *
+     * @param {unknown} obj
+     * @returns {unknown}
+     */
+    removeNull(obj) {
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.removeNull(item));
+        }
+        if (obj && typeof obj === "object") {
+            const result = {};
+            for (const [key, value] of Object.entries(obj)) {
+                if (value === null) {
+                    continue;
+                }
+                result[key] = value && typeof value === "object" ? this.removeNull(value) : value;
+            }
+            return result;
+        }
+        return obj;
     }
     getCodeChallenge() {
         const chars = "0123456789abcdef";
