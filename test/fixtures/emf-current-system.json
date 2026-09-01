@@ -1,0 +1,12 @@
+{
+  "heatPump": {
+    "device_uuid": "device-uuid-1",
+    "data": [
+      {
+        "to": "2026-03-01T00:00:00Z",
+        "operation_mode": "HEATING",
+        "value_type": "CONSUMPTION"
+      }
+    ]
+  }
+}

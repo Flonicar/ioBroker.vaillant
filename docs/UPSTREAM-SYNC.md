@@ -52,5 +52,6 @@ GitHub Actions workflow `.github/workflows/upstream-sync-check.yml` runs weekly 
 |------|-------------|-------------|-------|
 | 2026-03-26 | TA2k 1.0.3 | integrate/upstream-1.0.3 → master | Option A sync; myVaillant login + ALTCHA |
 | 2026-09-01 | (check CI) | quality roadmap | lib/* modules, diagnostics, tests, upstream-sync CI |
+| 2026-09-01 | — | 7162394, 943ed25 | Refactor: handlers/stats/legacy; write URL tests; retry in devices |
 
 Update this table after every upstream merge.

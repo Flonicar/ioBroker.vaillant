@@ -42,6 +42,20 @@ vaillant.0.id.systemControlState.controlState.zones01.setBackTemperature
 vaillant.0.id.systemControlState.controlState.zones01.heatingOperationMode OFF MANUAL TIME_CONTROLLED
 vaillant.0.id.systemControlState.controlState.domesticHotWater01.operationMode OFF MANUAL TIME_CONTROLLED
 
+## Diagnose
+
+Zusätzliche Instanz-States unter `info.*` zur Fehlersuche:
+
+| State | Beschreibung |
+|-------|--------------|
+| `info.connection` | Cloud-Verbindungsindikator |
+| `info.authMode` | Aktiver Pfad: `myvaillant`, `multimatic` oder `none` |
+| `info.lastError` | Letzte bereinigte Fehlermeldung (ohne Tokens) |
+| `info.lastSuccessfulPoll` | Unix-Zeitstempel (ms) des letzten erfolgreichen myVaillant-Polls |
+| `info.adapterVersion` | Installierte Adapter-Version |
+
+`info.lastError` zusammen mit dem Adapter-Log nutzen, um Login- oder Sync-Probleme einzuordnen.
+
 ## Remote Commands
 
 For Refresh and predefined
