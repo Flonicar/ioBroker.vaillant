@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "vaillant",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "news": {
+      "1.0.4": {
+        "en": "modular refactor: write handlers, stats sync and legacy multimatic isolated; diagnostic states; more unit tests and retry for cloud polling",
+        "de": "Modularer Refactor: Write-Handler, Stats-Sync und Legacy-multiMATIC ausgelagert; Diagnose-States; mehr Unit-Tests und Retry für Cloud-Polling",
+        "ru": "модульный рефакторинг: обработчики записи, синхронизация статистики и legacy multiMATIC; диагностические состояния; больше unit-тестов и retry для опроса облака",
+        "pt": "refatoração modular: handlers de escrita, sync de estatísticas e multiMATIC legacy isolado; estados de diagnóstico; mais testes unitários e retry no polling",
+        "nl": "modulaire refactor: write-handlers, stats-sync en legacy multiMATIC geïsoleerd; diagnose-states; meer unit-tests en retry voor cloud-polling",
+        "fr": "refactorisation modulaire : handlers d'écriture, sync stats et multiMATIC legacy isolé ; états de diagnostic ; plus de tests unitaires et retry pour le polling",
+        "it": "refactoring modulare: handler di scrittura, sync statistiche e multiMATIC legacy isolato; stati diagnostici; più unit test e retry per il polling cloud",
+        "es": "refactorización modular: handlers de escritura, sync de estadísticas y multiMATIC legacy aislado; estados de diagnóstico; más pruebas unitarias y retry en polling",
+        "pl": "modułowy refactor: handlery zapisu, sync statystyk i legacy multiMATIC; stany diagnostyczne; więcej testów jednostkowych i retry dla pollingu",
+        "uk": "модульний рефакторинг: обробники запису, синхронізація статистики та legacy multiMATIC; діагностичні стани; більше unit-тестів і retry для опитування хмари",
+        "zh-cn": "模块化重构：写入处理器、统计同步与 legacy multiMATIC 隔离；诊断状态；更多单元测试与云端轮询重试"
+      },
       "1.0.3": {
         "en": "fix writing DHW (dhw), circuit and ventilation settings for VRC700; clearer log when a value is not directly writable",
         "de": "Schreiben von Warmwasser- (dhw), Kreis- und Lüftungseinstellungen für VRC700 korrigiert; klarere Logmeldung, wenn ein Wert nicht direkt schreibbar ist",
