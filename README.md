@@ -1,359 +1,128 @@
-![Logo](admin/vaillant.png)
-
 # ioBroker.vaillant
 
-[![NPM version](http://img.shields.io/npm/v/iobroker.vaillant.svg)](https://www.npmjs.com/package/iobroker.vaillant)
-[![Downloads](https://img.shields.io/npm/dm/iobroker.vaillant.svg)](https://www.npmjs.com/package/iobroker.vaillant)
-![Number of Installations (latest)](http://iobroker.live/badges/vaillant-installed.svg)
-![Number of Installations (stable)](http://iobroker.live/badges/vaillant-stable.svg)
-[![Dependency Status](https://img.shields.io/david/TA2k/iobroker.vaillant.svg)](https://david-dm.org/TA2k/iobroker.vaillant)
-[![Known Vulnerabilities](https://snyk.io/test/github/TA2k/ioBroker.vaillant/badge.svg)](https://snyk.io/test/github/TA2k/ioBroker.vaillant)
+This adapter connects ioBroker to Vaillant heating systems via the myVaillant cloud API.
 
-[![NPM](https://nodei.co/npm/iobroker.vaillant.png?downloads=true)](https://nodei.co/npm/iobroker.vaillant/)
+> ⚠️ This adapter uses an **unofficial Vaillant cloud API**.
+> It may break at any time if Vaillant changes their backend.
 
-## vaillant adapter for ioBroker
+---
 
-Vaillant multiMatic and myVaillant adapter
+## Status
 
-### Getting started
+* myVaillant login via Keycloak / PKCE is working
+* Read access has been verified with a real installation
+* Systems, status and statistics are received successfully
+* Write commands are experimental and should be used carefully
+* The old Okta-based login flow has been removed
 
-Enter the mail and password of the multimatic/senso or myVaillant app in the instance options.
+---
 
-The myVAILLANT login is handled automatically, including Vaillant's login protection - you only need your email and password. The session is kept across restarts, so the adapter does not log in from scratch every time.
+## Requirements
 
-Configurations can be changed by adjusting them under the configuration sub-item. Some configurations are only applied when the mode is ON or MANUAL and not AUTO or TIME_CONTROLLED.
+* ioBroker installation
+* myVaillant account
+* Vaillant system connected to the cloud
+* Supported location, for example `germany`
 
-## **Example multimatic:**
+---
 
-**Hot water**: vaillant.0.serialnummer.systemcontrol/tli.dhw.hotwater.configuration.hotwater_temperature_setpoint
-**Heating**:
-First set to MANUAL
-vaillant.0.serialnummber.systemcontrol/tli.zones03.heating.configuration.operation_mode
-MANUAL
-Then the temperature
-vaillant.0.serial.systemcontrol/tli.zones03.heating.configuration.manual_mode_temperature_setpoint
-And finally set operation_mode to TIME_CONTROLLED
+## Configuration
 
-Parameters can be adjusted via the parameterValue item. Note which values are allowed in the definition object.
+Set the following values in the adapter configuration:
 
-## **Example myVaillant:**
-
-vaillant.0.id.systemControlState.controlState.domesticHotWater01.boost set to true/false to enable or disable the boost
-vaillant.0.id.systemControlState.controlState.zones01.desiredRoomTemperatureSetpoint to set the room temperature
-vaillant.0.id.systemControlState.controlState.zones01.setBackTemperature
-vaillant.0.id.systemControlState.controlState.zones01.heatingOperationMode OFF MANUAL TIME_CONTROLLED
-vaillant.0.id.systemControlState.controlState.domesticHotWater01.operationMode OFF MANUAL TIME_CONTROLLED
-
-## Remote Commands
-
-For Refresh and predefined
-`vaillant.0.id.remote`
-
-Predefined remote states under `vaillant.0.id.remote`:
-
-- `Refresh` / `RefreshStats` - trigger a data refresh
-- `boost` - domestic hot water boost (on/off)
-- `quickVeto` + `duration` - quick veto zone temperature (0 to disable)
-- `ventilationBoost` - ventilation boost (on/off)
-- `coolingForDays` - cooling for N days (0 = cancel)
-- `eebusEnabled` - enable/disable the EEBUS interface
-- `holiday` - holiday/away mode as json, e.g. `{"startDateTime":"2024-01-01T00:00:00.000Z","endDateTime":"2024-01-07T23:59:59.999Z","setpoint":10}`. Send an empty value (or `{}`) to cancel. `setpoint` is required for vrc700 controllers and rejected for tli. Malformed json is ignored (no request sent).
-- `ventilationOperationMode` / `ventilationFanStage` - use together with `ventilationIndex` to address the ventilation unit. `ventilationFanStage` also uses `ventilationFanStageType` (DAY or NIGHT).
-- `customCommand` - see below
-
-Read-only extra data (ported from mypyllant) appears under:
-`vaillant.0.id.troubleCodes`, `.rts`, `.mpc`, `.energyManagement`, `.eebus`
-
-## Custom Command
-
-You can use custom Commmand remote for not predefined remotes
-`vaillant.0.id.remotes.customCommand`
-
-### Examples:
-
-## The zone can range from 0 to X. Please test zone/0/ or zone/2/
-
-zone/0/xxxx
-
-zone/1/xxxx
-
-zone/2/xxxx
-
-```json
-{
-  "url": "zone/0/heating/comfort-room-temperature",
-  "data": { "comfortRoomTemperature": 10.5 }
-}
+```text
+myv = true
+user = your email
+password = your password
+location = germany
+fetchReports = false
 ```
 
-```json
-{
-  "url": "zone/1/heating/comfort-room-temperature",
-  "data": { "comfortRoomTemperature": 10.5 }
-}
-```
+`fetchReports = false` is recommended for the first smoke test to reduce API load.
+
+---
+
+## Supported Features
+
+* Login via myVaillant using Keycloak / PKCE
+* Discover available systems
+* Read system status
+* Read statistics if enabled
+* Create ioBroker states from received API data
+
+---
+
+## Write Commands / Experimental
+
+> ⚠️ Write commands may change heating behavior.
+> Use them carefully. Read functionality has been verified; write functionality may require additional testing depending on the system.
+
+### Example: Set room temperature
+
+Sets a temporary override temperature for a heating zone.
 
 ```json
 {
-  "url": "domestic-hot-water/255/operation-mode",
-  "data": { "operationMode": "OFF" }
-}
-```
-
-```json
-{
-  "url": "domestic-hot-water/255/temperature",
-  "data": { "setpoint": 55 }
-}
-```
-
-```json
-{
-  "url": "zone/1/heating/operation-mode",
-  "data": { "operationMode": "DAY" }
-}
-```
-
-```json
-{
-  "url": "zone/1/heating/set-back-temperature",
-  "data": { "setBackTemperature": 20 }
-}
-```
-
-```json
-{
-  "url": "zone/1/cooling/operation-mode",
-  "data": { "operationMode": "DAY" }
-}
-```
-
-```json
-{
-  "url": "zone/1/cooling/setpoint",
-  "data": { "setpoint": 20 }
-}
-```
-
-```json
-{
-  "url": "ventilation/0/operation-mode",
-  "data": { "operationMode": "DAY" }
-}
-```
-
-```json
-{
-  "url": "ventilation/0/operation-mode",
-  "data": { "operationMode": "SET_BACK" }
-}
-```
-
-```json
-{
-  "url": "ventilation/0/day-fan-stage",
-  "data": { "maximumDayFanStage": 3 }
-}
-```
-
-```json
-{
-  "url": "ventilation/0/night-fan-stage",
-  "data": { "maximumNightFanStage": 2 }
-}
-```
-
-```json
-{
-  "url": "zone/1/heating/quick-veto",
-  "data": { "desiredRoomTemperatureSetpoint": 11, "duration": 3 },
-  "method": "POST"
-}
-```
-
-```json
-{
-  "url": "domestic-hot-water/255/boost",
-  "data": {},
-  "method": "POST"
-}
-```
-
-```json
-{
-  "url": "domestic-hot-water/255/boost",
-  "data": {},
-  "method": "DELETE"
-}
-```
-
-```json
-{
-  "url": "domestic-hot-water/255/circulation-pump/time-windows",
-  "data": {
-    "friday": [
-      {
-        "endTime": 540,
-        "startTime": 360
-      }
-    ],
-    "monday": [],
-    "saturday": [],
-    "sunday": [],
-    "thursday": [],
-    "tuesday": [],
-    "wednesday": []
+  "quickVeto": {
+    "setpoint": 22,
+    "duration": 3600
   }
 }
 ```
 
+### Example: Activate away mode
+
+Switches the system into away mode.
+
 ```json
 {
-  "url": "domestic-hot-water/255/time-windows",
-  "data": {
-    "friday": [],
-    "monday": [
-      {
-        "endTime": 1320,
-        "startTime": 330
-      }
-    ],
-    "saturday": [
-      {
-        "endTime": 1320,
-        "startTime": 330
-      }
-    ],
-    "sunday": [
-      {
-        "endTime": 1320,
-        "startTime": 330
-      }
-    ],
-    "thursday": [
-      {
-        "endTime": 1320,
-        "startTime": 330
-      }
-    ],
-    "tuesday": [
-      {
-        "endTime": 1320,
-        "startTime": 330
-      }
-    ],
-    "wednesday": [
-      {
-        "endTime": 1320,
-        "startTime": 330
-      }
-    ]
+  "awayMode": {
+    "active": true
   }
 }
 ```
 
-```json
-{
-  "url": "cooling-for-days",
-  "data": {"value": 7},
-  "method": "POST"
-}
-```
+### Example: Custom command
+
+Advanced users can send custom API payloads. This is experimental and may not work on all systems.
 
 ```json
 {
-  "url": "cooling-for-days",
-  "method": "DELETE"
+  "customCommand": {
+    "method": "PATCH",
+    "url": "/systems/12345/zones/67890",
+    "data": {
+      "desiredRoomTemperatureSetpoint": 21
+    }
+  }
 }
 ```
 
-## Changelog
-### 1.0.3 (2026-07-28)
- - fix writing hot water (dhw), circuit and ventilation settings from the objects (VRC700)
- - clearer log message with a customCommand example when a value is not directly writable
+---
 
-### 1.0.2 (2026-07-26)
- - fix changing values like temperature and operation mode from the objects (VRC700). Zone and hot water settings now write to the correct endpoint
+## Limitations and Warnings
 
-### 1.0.1 (2026-07-24)
- - replaced the deprecated request library with axios
- - migrated to @iobroker/eslint-config and updated dependencies
- - require Node.js 22 and various repository fixes
+* This adapter uses an **unofficial Vaillant cloud API**
+* The API may change at any time without notice
+* The adapter depends on Vaillant cloud availability
+* Write commands can affect heating configuration
+* Not all systems or regions may behave identically
+* Do not share logs containing credentials, tokens or authorization headers
 
-### 1.0.0 (2026-07-24)
- - fix myVAILLANT login. Please enter your password again
- - stay logged in after a restart
- - new settings page - please open the settings and enter your password again
- - new data: fault codes, energy and EEBUS info
- - new controls: ventilation, cooling days and holiday mode
+---
 
-### 0.7.5 (2025-07-09)
- - revert change to fix save issue
+## Breaking Changes
 
-### 0.7.2 (2024-04-18)
+### 0.8.0
 
-- fix month stats period
+* Okta-based login has been removed
+* Only myVaillant using Keycloak / PKCE is supported
+* Legacy cloud behavior may no longer work
 
-### 0.3.0
+---
 
-- add boost
+## Notes
 
-### 0.1.2
-
-- fix refresh token
-
-### 0.1.1
-
-- add myvaillant support and stats
-
-### 0.0.15
-
-- bugfixes
-
-### 0.0.14
-
-- add rooms support
-
-### 0.0.13
-
-- fix livereport order
-
-### 0.0.11
-
-- fix issue with js-controller 3.2
-
-### 0.0.10
-
-- fix issue with js-controller 3
-
-### 0.0.8
-
-- (TA2k) Fix Authorization problem and missing configuration states
-
-### 0.0.6
-
-- (TA2k) initial release
-
-## License
-
-MIT License
-
-Copyright (c) 2020-2026 TA2k <tombox2020@gmail.com>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+* multiMATIC / sensoAPP legacy support is not actively maintained
+* The current focus is myVaillant cloud integration
+* Contributions and testing feedback are welcome
