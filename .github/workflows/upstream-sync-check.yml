@@ -1,0 +1,93 @@
+name: Upstream sync check
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  MAX_BEHIND_COMMITS: 5
+  UPSTREAM_REPO: https://github.com/TA2k/ioBroker.vaillant.git
+
+jobs:
+  upstream-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: Fetch upstream master
+        run: git fetch "$UPSTREAM_REPO" master:refs/remotes/upstream/master --depth=50
+
+      - name: Compute drift
+        id: drift
+        run: |
+          BEHIND=$(git rev-list --count HEAD..upstream/master || echo 0)
+          AHEAD=$(git rev-list --count upstream/master..HEAD || echo 0)
+          echo "behind=$BEHIND" >> "$GITHUB_OUTPUT"
+          echo "ahead=$AHEAD" >> "$GITHUB_OUTPUT"
+          echo "### Upstream drift" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Behind upstream/master | $BEHIND |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Ahead of upstream/master | $AHEAD |" >> "$GITHUB_STEP_SUMMARY"
+          FORK_VERSION=$(node -p "require('./package.json').version")
+          UPSTREAM_VERSION=$(git show upstream/master:package.json | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).version))")
+          echo "| Fork version | $FORK_VERSION |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Upstream version | $UPSTREAM_VERSION |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "#### Recent upstream commits not in fork" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          git log --oneline -10 HEAD..upstream/master >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "commits<<EOF"
+            git log --oneline -10 HEAD..upstream/master || true
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create or update drift issue
+        if: steps.drift.outputs.behind != '0'
+        uses: peter-evans/create-or-update-issue@v3
+        with:
+          title: "Upstream drift: ${{ steps.drift.outputs.behind }} commits behind TA2k/ioBroker.vaillant"
+          labels: upstream-sync
+          body: |
+            The fork is **${{ steps.drift.outputs.behind }}** commit(s) behind `upstream/master` and **${{ steps.drift.outputs.ahead }}** ahead.
+
+            Recent upstream commits:
+            ```
+            ${{ steps.drift.outputs.commits }}
+            ```
+
+            See [docs/UPSTREAM-SYNC.md](docs/UPSTREAM-SYNC.md) for the merge checklist.
+
+            ```bash
+            git fetch upstream
+            git log --oneline master..upstream/master
+            ```
+
+      - name: Close drift issue when up to date
+        if: steps.drift.outputs.behind == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ISSUE=$(gh issue list --label upstream-sync --state open --json number --jq '.[0].number' || true)
+          if [ -n "$ISSUE" ]; then
+            gh issue close "$ISSUE" --comment "Fork is up to date with upstream/master."
+          fi
+
+      - name: Warn when behind threshold
+        if: steps.drift.outputs.behind > env.MAX_BEHIND_COMMITS
+        run: |
+          echo "::warning::Fork is ${{ steps.drift.outputs.behind }} commits behind upstream (threshold ${{ env.MAX_BEHIND_COMMITS }})"

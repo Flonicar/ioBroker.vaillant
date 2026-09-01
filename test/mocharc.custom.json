@@ -3,6 +3,7 @@
     "test/mocha.setup.js"
   ],
   "spec": [
-    "{!(node_modules|test)/**/*.test.js,*.test.js,test/**/test!(PackageFiles|Startup).js}"
+    "main.test.js",
+    "{!(node_modules)/**/*.test.js,test/**/test!(PackageFiles|Startup).js}"
   ]
 }

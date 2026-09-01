@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0"
+  },
+  "include": [
+    "lib/altcha.js",
+    "lib/realm.js",
+    "lib/sanitize.js",
+    "lib/pkce.js",
+    "lib/session.js",
+    "lib/api/endpoints.js",
+    "lib/api/client.js"
+  ]
+}

@@ -11,9 +11,13 @@ const traverse = require("traverse");
 const Json2iob = require("json2iob");
 const axios = require("axios").default;
 const tough = require("tough-cookie");
-const crypto = require("node:crypto");
-const qs = require("qs");
 const { HttpsCookieAgent } = require("http-cookie-agent/http");
+const myVaillantAuth = require("./lib/auth/myvaillant");
+const deviceSync = require("./lib/sync/devices");
+const roomSync = require("./lib/sync/rooms");
+const diagnostics = require("./lib/diagnostics");
+const { sanitizeLogString } = require("./lib/sanitize");
+const ioPackage = require("./io-package.json");
 
 class Vaillant extends utils.Adapter {
     /**
@@ -93,6 +97,9 @@ class Vaillant extends utils.Adapter {
         // "password" field is no longer used; users must re-enter their password once.
         if (!this.config.passwordv2) {
             this.log.error("No password set. Please open the adapter settings and enter your Vaillant App password again.");
+            await diagnostics.ensureDiagnosticStates(this, ioPackage.common.version);
+            await diagnostics.setAuthMode(this, "none");
+            await diagnostics.setLastError(this, "No password configured");
             this.setState("info.connection", false, true);
             return;
         }
@@ -113,7 +120,9 @@ class Vaillant extends utils.Adapter {
         this.subscribeStates("*");
         // Reset the connection indicator during startup
         this.setState("info.connection", false, true);
+        await diagnostics.ensureDiagnosticStates(this, ioPackage.common.version);
         if (this.config.myv) {
+            await diagnostics.setAuthMode(this, "myvaillant");
             // Try to reuse a persisted session first so we skip the ALTCHA login on restarts.
             await this.loadSession();
             if (this.session.refresh_token) {
@@ -163,6 +172,7 @@ class Vaillant extends utils.Adapter {
                 ((this.session.expires_in || 3600) - 100) * 1000,
             );
         } else {
+            await diagnostics.setAuthMode(this, "multimatic");
             this.login()
                 .then(() => {
                     this.setState("info.connection", true, true);
@@ -261,390 +271,19 @@ class Vaillant extends utils.Adapter {
         // in this template all states changes inside the adapters namespace are subscribed
     }
     async myvLoginv2() {
-        const [code_verifier, codeChallenge] = this.getCodeChallenge();
-        let loginUrl = await this.requestClient({
-            method: "GET",
-            url: `https://identity.vaillant-group.com/auth/realms/vaillant-${
-                this.config.location
-            }-b2c/protocol/openid-connect/auth?client_id=myvaillant&redirect_uri=enduservaillant.page.link%3A%2F%2Flogin&login_hint=${
-                this.config.user
-            }&response_mode=fragment&response_type=code&scope=offline_access%20openid&code_challenge=${
-                codeChallenge
-            }&code_challenge_method=S256`,
-            headers: this.myvHeader,
-        })
-            .then(res => {
-                this.log.debug(JSON.stringify(res.data));
-                if (typeof res.data !== "string" || !res.data.includes('action="')) {
-                    this.log.error("Login failed: no login form action found in auth response");
-                    return;
-                }
-                return res.data.split('action="')[1].split('"')[0];
-            })
-            .catch(error => {
-                this.log.error(error);
-                error.response && this.log.error(JSON.stringify(error.response.data));
-            });
-        if (!loginUrl) {
-            return;
-        }
-        loginUrl = loginUrl.replace(/&amp;/g, "&");
-
-        // Vaillant added an ALTCHA proof-of-work challenge to the Keycloak login. Solve it
-        // headless and send it as the "altcha" form field, otherwise the login returns no redirect.
-        const loginData = { username: this.config.user, password: this.config.password, credentialId: "" };
-        await this.requestClient({
-            method: "GET",
-            url: "https://identity.vaillant-group.com/api/altcha/challenge",
-            headers: this.myvHeader,
-        })
-            .then(res => {
-                this.log.debug(JSON.stringify(res.data));
-                const altcha = this.solveAltchaChallenge(res.data);
-                if (altcha) {
-                    loginData.altcha = altcha;
-                }
-            })
-            .catch(error => {
-                this.log.debug("Could not fetch or solve ALTCHA challenge, continuing without it");
-                this.log.debug(error);
-            });
-
-        const response = await this.requestClient({
-            method: "POST",
-            url: loginUrl,
-            headers: {
-                accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "content-type": "application/x-www-form-urlencoded",
-                origin: "null",
-                "user-agent":
-                    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Mobile/15E148 Safari/604.1",
-                "accept-language": "de-de",
-            },
-            data: qs.stringify(loginData),
-        })
-            .then(res => {
-                this.log.debug(JSON.stringify(res.data));
-                this.log.error("Login failed no code for myvLoginv2");
-                // Try to extract the Keycloak error message, but never crash if it is missing
-                if (typeof res.data === "string" && res.data.includes('polite">')) {
-                    this.log.error(res.data.split('polite">')[1].split("<")[0].trim());
-                } else {
-                    this.log.error("No redirect received. Check credentials or ALTCHA handling.");
-                }
-            })
-            .catch(error => {
-                if (error && error.message.includes("Unsupported protocol")) {
-                    this.log.debug(JSON.stringify(error.message));
-                    this.log.debug(JSON.stringify(error.request._options.href));
-                    this.log.debug(JSON.stringify(error.request._options.hash));
-                    return qs.parse(error.request._options.href.split("#")[1]);
-                }
-                this.log.error(error);
-                error.response && this.log.error(JSON.stringify(error.response.data));
-            });
-        if (!response || !response.code) {
-            return;
-        }
-        await this.requestClient({
-            method: "post",
-            maxBodyLength: Infinity,
-            url: `https://identity.vaillant-group.com/auth/realms/vaillant-${this.config.location}-b2c/protocol/openid-connect/token`,
-            headers: {
-                Accept: "application/json, text/plain, */*",
-                "Content-Type": "application/x-www-form-urlencoded",
-                "x-app-identifier": "VAILLANT",
-                "Accept-Language": "de-de",
-                "x-client-locale": "de-DE",
-                "x-idm-identifier": "KEYCLOAK",
-                "x-app-version": "3.9.0",
-                "x-app-build": "25662",
-                "User-Agent": "myVAILLANT/25662 CFNetwork/1496.0.7 Darwin/23.5.0",
-            },
-            data: qs.stringify({
-                client_id: "myvaillant",
-                grant_type: "authorization_code",
-                code_verifier: code_verifier,
-                code: response.code,
-                redirect_uri: "enduservaillant.page.link://login",
-            }),
-        })
-            .then(async res => {
-                this.log.debug(JSON.stringify(res.data));
-                if (res.data.access_token) {
-                    this.log.info("Login successful");
-                    this.session = res.data;
-                    await this.persistSession();
-                    this.setState("info.connection", true, true);
-                }
-            })
-            .catch(error => {
-                this.log.error(error);
-                error.response && this.log.error(JSON.stringify(error.response.data));
-            });
+        return myVaillantAuth.myvLoginv2(this);
     }
 
     async getMyvDeviceList() {
-        await this.requestClient({
-            method: "get",
-            url: "https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/homes",
-            headers: {
-                Authorization: `Bearer ${this.session.access_token}`,
-            },
-        })
-            .then(async res => {
-                this.log.debug(JSON.stringify(res.data));
-                if (res.data.length > 0) {
-                    this.log.info(`Found ${res.data.length} system`);
-                    for (const device of res.data) {
-                        this.log.debug(JSON.stringify(device));
-                        const id = device.systemId;
-                        const remoteState = await this.getObjectAsync(`${id}.systemControlState`);
-
-                        if (remoteState) {
-                            this.log.info(`Clean old states${id}`);
-                            await this.delObjectAsync(id, { recursive: true });
-                        }
-
-                        // if (device.subDeviceNo) {
-                        //   id += "." + device.subDeviceNo;
-                        // }
-
-                        const name = `${device.homeName} ${device.productInformation}`;
-                        device.identifier = await this.requestClient({
-                            method: "get",
-                            url: `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/${
-                                id
-                            }/meta-info/control-identifier`,
-                            headers: {
-                                Authorization: `Bearer ${this.session.access_token}`,
-                            },
-                        })
-                            .then(res => {
-                                this.log.debug(JSON.stringify(res.data));
-                                return res.data.controlIdentifier;
-                            })
-                            .catch(error => {
-                                this.log.error(error);
-                                error.response && this.log.error(JSON.stringify(error.response.data));
-                            });
-                        this.deviceArray.push(device);
-                        await this.extendObjectAsync(id, {
-                            type: "device",
-                            common: {
-                                name: name,
-                            },
-                            native: {},
-                        });
-                        await this.delObjectAsync(`${id}.remote`, { recursive: true });
-                        await this.setObjectNotExistsAsync(`${id}.remote`, {
-                            type: "channel",
-                            common: {
-                                name: "Remote Controls (For Heating use id.configuration.zones...)",
-                            },
-                            native: {},
-                        });
-
-                        /* holiday
-{
-    "holidayEndDateTime": "2023-11-28T23:59:59.999Z",
-    "holidayStartDateTime": "2022-11-28T00:00:00.000Z"
-}
-            */
-                        const remoteArray = [
-                            { command: "Refresh", name: "True = Refresh" },
-                            { command: "RefreshStats", name: "True = Stats Refresh" },
-                            // { command: "operationModeHeating", name: "Heating Operation Mode: e.g. MANUAL, OFF" },
-                            // { command: "setSwitch", name: "True = Switch On, False = Switch Off" },
-                            // { command: "awayMode", name: "True = Switch On, False = Switch Off" },
-                            { command: "boost", name: "True = Switch On, False = Switch Off" },
-                            // { command: "holiday", name: "True = Switch On, False = Switch Off" },
-                            // {
-                            //   command: "manualModeSetpoint",
-                            //   name: "set Temperature",
-                            //   type: "number",
-                            //   def: 21,
-                            //   role: "level.temperature",
-                            // },
-                            // { command: "duration", name: "Duration Room Temperature", type: "number", def: 3, role: "level" },
-                            // { command: "zone", name: "Zone Room Temperature", type: "number", def: 0, role: "level" },
-                            {
-                                command: "quickVeto",
-                                name: "set Temperature in TimeControlled Mode (0 to disable)",
-                                type: "number",
-                                def: 21,
-                                role: "level.temperature",
-                            },
-                            { command: "duration", name: "QuickVeto duration in minutes", type: "number", def: 3, role: "level" },
-                            {
-                                command: "ventilationBoost",
-                                name: "Ventilation Boost: True = Switch On, False = Switch Off",
-                            },
-                            {
-                                command: "coolingForDays",
-                                name: "Cooling for days: number of days (0 = cancel)",
-                                type: "number",
-                                def: 0,
-                                role: "level",
-                            },
-                            {
-                                command: "eebusEnabled",
-                                name: "EEBUS interface: True = Enable, False = Disable",
-                            },
-                            {
-                                command: "holiday",
-                                name: "Holiday/Away mode as json (empty data = cancel)",
-                                type: "json",
-                                role: "json",
-                                def: `{"startDateTime":"2024-01-01T00:00:00.000Z","endDateTime":"2024-01-07T23:59:59.999Z","setpoint":10}`,
-                            },
-                            {
-                                command: "ventilationOperationMode",
-                                name: "Ventilation operation mode (uses ventilationIndex, e.g. OFF, NORMAL, REDUCED)",
-                                type: "string",
-                                role: "text",
-                                def: "NORMAL",
-                            },
-                            {
-                                command: "ventilationFanStage",
-                                name: "Ventilation max fan stage (uses ventilationIndex)",
-                                type: "number",
-                                def: 1,
-                                role: "level",
-                            },
-                            {
-                                command: "ventilationFanStageType",
-                                name: "Ventilation fan stage type: DAY or NIGHT",
-                                type: "string",
-                                role: "text",
-                                def: "DAY",
-                            },
-                            {
-                                command: "ventilationIndex",
-                                name: "Ventilation index used by ventilation commands",
-                                type: "number",
-                                def: 0,
-                                role: "level",
-                            },
-                            {
-                                command: "customCommand",
-                                name: "Send custom command as json",
-                                type: "json",
-                                role: "json",
-                                def: `{"url":"zone/1/heating/comfort-room-temperature", "data":{"comfortRoomTemperature":10.5}}`,
-                            },
-                        ];
-                        remoteArray.forEach(remote => {
-                            this.extendObjectAsync(`${id}.remote.${remote.command}`, {
-                                type: "state",
-                                common: {
-                                    name: remote.name || "",
-                                    type: remote.type || "boolean",
-                                    role: remote.role || "switch",
-                                    def: remote.def != null ? remote.def : false,
-                                    write: true,
-                                    read: true,
-                                },
-                                native: {},
-                            });
-                        });
-                        this.json2iob.parse(`${id}.general`, device, { forceIndex: true, write: true, channelName: "General Information" });
-                    }
-                }
-            })
-            .catch(error => {
-                this.log.error(error);
-                error.response && this.log.error(JSON.stringify(error.response.data));
-            });
+        return deviceSync.getMyvDeviceList(this);
     }
 
     async updateMyvDevices() {
-        for (const device of this.deviceArray) {
-            let url = `https://api.vaillant-group.com/service-connected-control/${device.identifier}/v1/systems/${device.systemId}`;
-            if (device.identifier === "tli") {
-                url = `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/systems/${device.systemId}/${device.identifier}`;
-            }
-
-            const headers = {
-                Authorization: `Bearer ${this.session.access_token}`,
-            };
-            if (this.etags[url]) {
-                headers["If-None-Match"] = this.etags[url];
-            }
-            await this.requestClient({
-                method: "get",
-                url: url,
-                headers: headers,
-            })
-                .then(async res => {
-                    this.log.debug(JSON.stringify(res.data));
-
-                    const id = device.systemId;
-                    if (res.headers.etag) {
-                        this.etags[url] = res.headers.etag;
-                    }
-                    this.json2iob.parse(id, res.data, {
-                        forceIndex: true,
-                        write: true,
-                        channelName: `${device.homeName} ${device.productInformation}`,
-                    });
-                })
-                .catch(error => {
-                    if (error.response && error.response.status === 304) {
-                        this.log.debug(`No changes for ${url}`);
-                        return;
-                    }
-                    this.log.error(`Failed to get status for ${device.systemId}`);
-                    this.log.error(error);
-                    error.response && this.log.error(JSON.stringify(error.response.data));
-                });
-        }
+        return deviceSync.updateMyvDevices(this);
     }
+
     async updateMyvRooms() {
-        for (const device of this.deviceArray) {
-            if (this.disabledRooms.includes(device.systemId)) {
-                continue;
-            }
-            const url = `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1/api/v1/ambisense/facilities/${device.systemId}/rooms`;
-            const headers = {
-                Authorization: `Bearer ${this.session.access_token}`,
-            };
-            if (this.etags[url]) {
-                headers["If-None-Match"] = this.etags[url];
-            }
-            await this.requestClient({
-                method: "get",
-                url: url,
-                headers: headers,
-            })
-                .then(async res => {
-                    this.log.debug(JSON.stringify(res.data));
-
-                    const id = `${device.systemId}.rooms`;
-                    if (res.headers.etag) {
-                        this.etags[url] = res.headers.etag;
-                    }
-                    // Drop null fields (e.g. currentHumidity) so json2iob keeps a stable state
-                    // type and history adapters don't complain about type flips.
-                    this.json2iob.parse(id, this.removeNull(res.data), {
-                        write: true,
-                        channelName: "Rooms",
-                        preferedArrayName: "roomConfiguration/name",
-                    });
-                })
-                .catch(error => {
-                    if (error.response && error.response.status === 304) {
-                        this.log.debug(`No changes for ${url}`);
-                        return;
-                    }
-
-                    this.log.error(`Failed to get room status for ${device.systemId}`);
-                    this.log.error(error);
-                    error.response && this.log.error(JSON.stringify(error.response.data));
-                    this.log.info("Stop fetching of rooms until restart");
-                    this.disabledRooms.push(device.systemId);
-                });
-        }
+        return roomSync.updateMyvRooms(this);
     }
     async clearOldStats() {
         for (const device of this.deviceArray) {
@@ -895,114 +534,19 @@ class Vaillant extends utils.Adapter {
         }
     }
     async refreshToken() {
-        await this.requestClient({
-            method: "post",
-            url: `https://identity.vaillant-group.com/auth/realms/vaillant-${this.config.location}-b2c/protocol/openid-connect/token`,
-            headers: {
-                Accept: "application/json, text/plain, */*",
-                "Content-Type": "application/x-www-form-urlencoded",
-                "x-app-identifier": "VAILLANT",
-                "Accept-Language": "de-de",
-                "x-client-locale": "de-DE",
-                "x-idm-identifier": "KEYCLOAK",
-                "x-app-version": "3.9.0",
-                "x-app-build": "25662",
-                "User-Agent": "myVAILLANT/25662 CFNetwork/1496.0.7 Darwin/23.5.0",
-            },
-            data: qs.stringify({
-                refresh_token: this.session.refresh_token,
-                client_id: "myvaillant",
-                grant_type: "refresh_token",
-            }),
-        })
-            .then(async res => {
-                this.log.debug(JSON.stringify(res.data));
-                this.session = res.data;
-                this.log.debug("Refresh successful");
-                await this.persistSession();
-                this.setState("info.connection", true, true);
-            })
-            .catch(async error => {
-                this.log.error(error);
-                error.response && this.log.error(JSON.stringify(error.response.data));
-                // Only drop the stored token if the server actually rejected it (invalid_grant).
-                // Transient failures (DNS, timeout, 5xx) must keep the refresh token for a retry.
-                const rejected = error.response && (error.response.status === 400 || error.response.status === 401);
-                if (rejected) {
-                    this.log.warn("Refresh token rejected, running full login");
-                    this.session = {};
-                    await this.clearSession();
-                    await this.myvLoginv2();
-                    if (this.session.access_token) {
-                        return;
-                    }
-                }
-                await this.setStateAsync("info.connection", false, true);
-            });
+        return myVaillantAuth.refreshToken(this);
     }
-    /**
-     * Persist the OAuth session (incl. refresh token) as plain JSON in auth.session,
-     * so it survives adapter restarts and we can skip the ALTCHA login flow.
-     */
+
     async persistSession() {
-        try {
-            await this.setObjectNotExistsAsync("auth.session", {
-                type: "state",
-                common: {
-                    name: "OAuth session (access/refresh token)",
-                    type: "string",
-                    role: "json",
-                    read: true,
-                    write: false,
-                },
-                native: {},
-            });
-            // Store the account/realm the token belongs to, so we never reuse it after a config change.
-            const persisted = Object.assign({}, this.session, {
-                _user: this.config.user,
-                _location: this.config.location,
-            });
-            await this.setStateAsync("auth.session", JSON.stringify(persisted), true);
-        } catch (error) {
-            this.log.debug(`Could not persist session: ${error}`);
-        }
+        return myVaillantAuth.persistSession(this);
     }
-    /**
-     * Load a previously persisted OAuth session from auth.session into this.session.
-     * Only accepts a well-formed object that still belongs to the configured account.
-     */
+
     async loadSession() {
-        try {
-            const state = await this.getStateAsync("auth.session");
-            if (!state || !state.val) {
-                return;
-            }
-            const parsed = JSON.parse(state.val);
-            if (!parsed || typeof parsed !== "object" || !parsed.refresh_token) {
-                this.log.debug("Persisted session is malformed, ignoring");
-                await this.clearSession();
-                return;
-            }
-            if (parsed._user !== this.config.user || parsed._location !== this.config.location) {
-                this.log.debug("Persisted session belongs to a different account, ignoring");
-                await this.clearSession();
-                return;
-            }
-            this.session = parsed;
-        } catch (error) {
-            this.log.debug(`Could not load persisted session: ${error}`);
-            this.session = {};
-        }
+        return myVaillantAuth.loadSession(this);
     }
-    /**
-     * Remove a persisted session, e.g. after a refresh token became invalid.
-     */
+
     async clearSession() {
-        try {
-            await this.setStateAsync("auth.session", "", true);
-        } catch (error) {
-            this.log.debug(`Could not clear persisted session: ${error}`);
-        }
+        return myVaillantAuth.clearSession(this);
     }
     updateValues() {
         this.log.debug("update values");
@@ -1113,9 +657,15 @@ class Vaillant extends utils.Adapter {
                 })
                 .catch(err => {
                     this.log.error("Failed to login");
+                    if (err.response && err.response.status === 503) {
+                        this.log.error(
+                            "multiMATIC API returned 503 (legacy smart.vaillant.com). Enable myVaillant (myv) in adapter settings — the legacy API is often unavailable.",
+                        );
+                    }
                     this.log.error(err);
                     err.response && this.log.error(JSON.stringify(err.response.data));
                     err.response && this.log.error(err.response.status);
+                    void diagnostics.setLastError(this, sanitizeLogString(err.message || "multiMATIC login failed"));
                     reject();
                 });
         });
@@ -1569,63 +1119,6 @@ class Vaillant extends utils.Adapter {
             return result;
         }
         return obj;
-    }
-    getCodeChallenge() {
-        const chars = "0123456789abcdef";
-        let codeVerifier = "";
-        for (let i = 64; i > 0; --i) {
-            codeVerifier += chars[Math.floor(Math.random() * chars.length)];
-        }
-        let hash = crypto.createHash("sha256").update(codeVerifier).digest("base64");
-        hash = hash.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-
-        return [codeVerifier, hash];
-    }
-    /**
-     * Solves the ALTCHA proof-of-work challenge served by Vaillant's Keycloak login page.
-     * The challenge JSON comes from GET /api/altcha/challenge. We brute-force a counter until
-     * PBKDF2-HMAC(nonce + counter, salt, cost) starts with keyPrefix, then base64-pack the
-     * solution the same way the browser widget does, so it can be sent as the "altcha" form field.
-     *
-     * @param {object} challenge
-     * @returns {string|null}
-     */
-    solveAltchaChallenge(challenge) {
-        if (!challenge || !challenge.parameters) {
-            return null;
-        }
-        const parameters = challenge.parameters;
-        const nonceBuf = Buffer.from(parameters.nonce, "hex");
-        const saltBuf = Buffer.from(parameters.salt, "hex");
-        const keyPrefixBuf = Buffer.from(parameters.keyPrefix, "hex");
-        const cost = parameters.cost;
-        const keyLength = parameters.keyLength || 32;
-        const digest =
-            {
-                "PBKDF2/SHA-512": "sha512",
-                "PBKDF2/SHA-384": "sha384",
-            }[parameters.algorithm] || "sha256";
-
-        // Brute-force the counter until PBKDF2 output starts with keyPrefix. The upper bound
-        // guards against an unsolvable challenge so we never loop forever.
-        const maxCounter = Math.max(cost * 10, 1000000);
-        for (let counter = 0; counter <= maxCounter; counter++) {
-            const counterBuf = Buffer.alloc(4);
-            counterBuf.writeUInt32BE(counter, 0);
-            const password = Buffer.concat([nonceBuf, counterBuf]);
-            const derived = crypto.pbkdf2Sync(password, saltBuf, cost, keyLength, digest);
-            if (derived.subarray(0, keyPrefixBuf.length).equals(keyPrefixBuf)) {
-                const payload = {
-                    challenge: {
-                        parameters: parameters,
-                        signature: challenge.signature,
-                    },
-                    solution: { counter: counter, derivedKey: derived.toString("hex"), time: 0 },
-                };
-                return Buffer.from(JSON.stringify(payload), "utf-8").toString("base64");
-            }
-        }
-        return null;
     }
     /**
   async receiveReports() {

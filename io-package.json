@@ -259,6 +259,54 @@
         "def": false
       },
       "native": {}
+    },
+    {
+      "_id": "info.lastSuccessfulPoll",
+      "type": "state",
+      "common": {
+        "name": "Last successful cloud poll (unix ms)",
+        "type": "number",
+        "role": "value.time",
+        "read": true,
+        "write": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.lastError",
+      "type": "state",
+      "common": {
+        "name": "Last error (sanitized)",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.authMode",
+      "type": "state",
+      "common": {
+        "name": "Active auth mode",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.adapterVersion",
+      "type": "state",
+      "common": {
+        "name": "Adapter version",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false
+      },
+      "native": {}
     }
   ]
 }
