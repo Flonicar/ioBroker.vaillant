@@ -19,6 +19,19 @@ Vaillant multiMatic und myVaillant Adapter
 
 In den Instanzoptionen mail und password der multimatic /senso oder myVaillant app eingeben.
 
+### Konfiguration (Tabs)
+
+| Tab | Inhalt |
+|-----|--------|
+| **myVaillant** | Login, Passwort, Standort (Auswahl) |
+| **Abruf & Intervalle** | Status-/Statistik-Intervall, Abruf-Toggles pro Feature |
+| **Legacy multiMATIC** | Nur Legacy (`fetchReports`) |
+| **Erweitert** | `cleantype` für Legacy |
+
+**Quota-Hinweis:** Zusatz-Abrufe (DTC, RTS, MPC, EEBUS, Verbindungsstatus, Zeitzone) sind standardmäßig **aus**. Nur aktivieren, was wirklich gebraucht wird. Status-Intervall nicht unter 15 Minuten empfehlen.
+
+Unter `{systemId}.summary.*` liegen flache Summary-States (z. B. Außentemperatur, Betriebsmodus) ohne zusätzliche API-Calls, wenn `fetchSummary` aktiv ist.
+
 Configuration können geändert werde in dem sie unter dem Unterpunkt configuration angepasst werden. Manche configuration werden erst angewendet wenn der Modus auf ON oder MANUAL ist und nicht AUTO oder TIME_CONTROLLED
 
 ## **Beispiel Mutlimatic:**

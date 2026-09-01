@@ -1,183 +1,362 @@
 {
   "i18n": false,
-  "type": "panel",
+  "type": "tabs",
   "items": {
-    "user": {
-      "type": "text",
+    "myVaillantTab": {
+      "type": "panel",
       "label": {
-        "en": "Vaillant App User",
-        "de": "Vaillant App Benutzer",
-        "ru": "Пользователь приложения Vaillant",
-        "pt": "Utilizador da aplicação Vaillant",
-        "nl": "Vaillant App-gebruiker",
-        "fr": "Utilisateur de l'application Vaillant",
-        "it": "Utente dell'app Vaillant",
-        "es": "Usuario de la aplicación Vaillant",
-        "pl": "Użytkownik aplikacji Vaillant",
-        "uk": "Користувач додатка Vaillant",
-        "zh-cn": "Vaillant 应用用户"
+        "en": "myVaillant",
+        "de": "myVaillant"
       },
-      "xs": 12,
-      "sm": 12,
-      "md": 6,
-      "lg": 6,
-      "xl": 6
+      "items": {
+        "myv": {
+          "type": "checkbox",
+          "label": {
+            "en": "Use myVaillant App (recommended)",
+            "de": "myVaillant App verwenden (empfohlen)"
+          },
+          "xs": 12,
+          "sm": 12,
+          "md": 12,
+          "lg": 12,
+          "xl": 12
+        },
+        "user": {
+          "type": "text",
+          "label": {
+            "en": "Vaillant App User",
+            "de": "Vaillant App Benutzer"
+          },
+          "xs": 12,
+          "sm": 12,
+          "md": 6,
+          "lg": 6,
+          "xl": 6
+        },
+        "passwordv2": {
+          "type": "password",
+          "label": {
+            "en": "Vaillant App Password",
+            "de": "Vaillant App Passwort"
+          },
+          "xs": 12,
+          "sm": 12,
+          "md": 6,
+          "lg": 6,
+          "xl": 6
+        },
+        "location": {
+          "type": "select",
+          "label": {
+            "en": "Vaillant App Location",
+            "de": "Vaillant App Standort"
+          },
+          "options": [
+            { "label": { "en": "Germany", "de": "Deutschland" }, "value": "germany" },
+            { "label": { "en": "Denmark", "de": "Dänemark" }, "value": "denmark" },
+            { "label": { "en": "Switzerland", "de": "Schweiz" }, "value": "switzerland" },
+            { "label": { "en": "Austria", "de": "Österreich" }, "value": "austria" },
+            { "label": { "en": "Belgium", "de": "Belgien" }, "value": "belgium" }
+          ],
+          "newLine": true,
+          "xs": 12,
+          "sm": 12,
+          "md": 6,
+          "lg": 6,
+          "xl": 6
+        }
+      }
     },
-    "passwordv2": {
-      "type": "password",
+    "pollingTab": {
+      "type": "panel",
       "label": {
-        "en": "Vaillant App Password",
-        "de": "Vaillant App Passwort",
-        "ru": "Пароль приложения Vaillant",
-        "pt": "Palavra-passe da aplicação Vaillant",
-        "nl": "Vaillant App-wachtwoord",
-        "fr": "Mot de passe de l'application Vaillant",
-        "it": "Password dell'app Vaillant",
-        "es": "Contraseña de la aplicación Vaillant",
-        "pl": "Hasło aplikacji Vaillant",
-        "uk": "Пароль додатка Vaillant",
-        "zh-cn": "Vaillant 应用密码"
+        "en": "Polling & data",
+        "de": "Abruf & Intervalle"
       },
-      "xs": 12,
-      "sm": 12,
-      "md": 6,
-      "lg": 6,
-      "xl": 6
+      "items": {
+        "interval": {
+          "type": "number",
+          "label": {
+            "en": "Status poll interval (minutes, min. 5)",
+            "de": "Status-Abrufintervall (Minuten, min. 5)"
+          },
+          "min": 5,
+          "xs": 12,
+          "sm": 12,
+          "md": 6,
+          "lg": 6,
+          "xl": 6
+        },
+        "statsInterval": {
+          "type": "number",
+          "label": {
+            "en": "Statistics poll interval (minutes, min. 60)",
+            "de": "Statistik-Abrufintervall (Minuten, min. 60)"
+          },
+          "min": 60,
+          "newLine": true,
+          "xs": 12,
+          "sm": 12,
+          "md": 6,
+          "lg": 6,
+          "xl": 6
+        },
+        "fetchReportsLimit": {
+          "type": "number",
+          "label": {
+            "en": "EMF day stats: number of past days",
+            "de": "EMF-Tagesstatistik: Anzahl vergangener Tage"
+          },
+          "min": 1,
+          "max": 60,
+          "newLine": true,
+          "xs": 12,
+          "sm": 12,
+          "md": 6,
+          "lg": 6,
+          "xl": 6
+        },
+        "fetchStatus": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch system status",
+            "de": "Systemstatus abrufen"
+          },
+          "newLine": true,
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchRooms": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch Ambisense rooms",
+            "de": "Ambisense-Räume abrufen"
+          },
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchPvData": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch PV data",
+            "de": "PV-Daten abrufen"
+          },
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchStats": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch EMF statistics",
+            "de": "EMF-Statistiken abrufen"
+          },
+          "newLine": true,
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchStatsMonths": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch monthly EMF buckets (more API calls)",
+            "de": "Monatliche EMF-Buckets abrufen (mehr API-Aufrufe)"
+          },
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchEfficiency": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch efficiency data",
+            "de": "Effizienzdaten abrufen"
+          },
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchSummary": {
+          "type": "checkbox",
+          "label": {
+            "en": "Create summary states (no extra API calls)",
+            "de": "Summary-States erzeugen (keine Extra-API)"
+          },
+          "newLine": true,
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchTroubleCodes": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch diagnostic trouble codes",
+            "de": "Fehlercodes (DTC) abrufen"
+          },
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchRts": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch RTS device statistics",
+            "de": "RTS-Gerätestatistik abrufen"
+          },
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchMpc": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch MPC power usage",
+            "de": "MPC-Leistungsdaten abrufen"
+          },
+          "newLine": true,
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchEnergyManagement": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch energy management",
+            "de": "Energiemanagement abrufen"
+          },
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchEebus": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch EEBUS data",
+            "de": "EEBUS-Daten abrufen"
+          },
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchConnectionStatus": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch connection status (quota intensive)",
+            "de": "Verbindungsstatus abrufen (Quota-intensiv)"
+          },
+          "newLine": true,
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchTimeZone": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch time zone once (quota intensive)",
+            "de": "Zeitzone einmalig abrufen (Quota-intensiv)"
+          },
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchAmbisenseCapability": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch Ambisense capability",
+            "de": "Ambisense-Fähigkeit abrufen"
+          },
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        }
+      }
     },
-    "myv": {
-      "type": "checkbox",
+    "legacyTab": {
+      "type": "panel",
       "label": {
-        "en": "Use myVaillant App",
-        "de": "myVaillant App verwenden",
-        "ru": "Использовать приложение myVaillant",
-        "pt": "Usar a aplicação myVaillant",
-        "nl": "myVaillant App gebruiken",
-        "fr": "Utiliser l'application myVaillant",
-        "it": "Usa l'app myVaillant",
-        "es": "Usar la aplicación myVaillant",
-        "pl": "Użyj aplikacji myVaillant",
-        "uk": "Використовувати додаток myVaillant",
-        "zh-cn": "使用 myVaillant 应用"
+        "en": "Legacy multiMATIC",
+        "de": "Legacy multiMATIC"
       },
-      "newLine": true,
-      "xs": 12,
-      "sm": 12,
-      "md": 6,
-      "lg": 6,
-      "xl": 6
+      "items": {
+        "legacyHint": {
+          "type": "staticText",
+          "text": {
+            "en": "Only used when myVaillant is disabled. The legacy API is often unavailable (503).",
+            "de": "Nur wenn myVaillant deaktiviert ist. Die Legacy-API ist oft nicht erreichbar (503)."
+          },
+          "xs": 12,
+          "sm": 12,
+          "md": 12,
+          "lg": 12,
+          "xl": 12
+        },
+        "fetchReports": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch legacy reports (multiMATIC only)",
+            "de": "Legacy-Berichte abrufen (nur multiMATIC)"
+          },
+          "newLine": true,
+          "xs": 12,
+          "sm": 12,
+          "md": 6,
+          "lg": 6,
+          "xl": 6
+        }
+      }
     },
-    "location": {
-      "type": "text",
+    "advancedTab": {
+      "type": "panel",
       "label": {
-        "en": "Vaillant App Location (e.g. germany, denmark, switzerland, austria, belgium)",
-        "de": "Vaillant App Standort (z. B. germany, denmark, switzerland, austria, belgium)",
-        "ru": "Регион приложения Vaillant (например, germany, denmark, switzerland, austria, belgium)",
-        "pt": "Localização da aplicação Vaillant (por exemplo, germany, denmark, switzerland, austria, belgium)",
-        "nl": "Vaillant App-locatie (bijv. germany, denmark, switzerland, austria, belgium)",
-        "fr": "Emplacement de l'application Vaillant (par ex. germany, denmark, switzerland, austria, belgium)",
-        "it": "Posizione dell'app Vaillant (ad es. germany, denmark, switzerland, austria, belgium)",
-        "es": "Ubicación de la aplicación Vaillant (p. ej. germany, denmark, switzerland, austria, belgium)",
-        "pl": "Lokalizacja aplikacji Vaillant (np. germany, denmark, switzerland, austria, belgium)",
-        "uk": "Розташування додатка Vaillant (наприклад, germany, denmark, switzerland, austria, belgium)",
-        "zh-cn": "Vaillant 应用位置（例如 germany、denmark、switzerland、austria、belgium）"
+        "en": "Advanced",
+        "de": "Erweitert"
       },
-      "newLine": true,
-      "xs": 12,
-      "sm": 12,
-      "md": 6,
-      "lg": 6,
-      "xl": 6
-    },
-    "interval": {
-      "type": "number",
-      "label": {
-        "en": "Update interval in minutes. Don't use a too low value to prevent blocking.",
-        "de": "Aktualisierungsintervall in Minuten. Keinen zu niedrigen Wert verwenden, um Blockierungen zu vermeiden.",
-        "ru": "Интервал обновления в минутах. Не используйте слишком низкое значение, чтобы избежать блокировки.",
-        "pt": "Intervalo de atualização em minutos. Não use um valor demasiado baixo para evitar bloqueios.",
-        "nl": "Update-interval in minuten. Gebruik geen te lage waarde om blokkering te voorkomen.",
-        "fr": "Intervalle de mise à jour en minutes. N'utilisez pas une valeur trop basse pour éviter le blocage.",
-        "it": "Intervallo di aggiornamento in minuti. Non usare un valore troppo basso per evitare blocchi.",
-        "es": "Intervalo de actualización en minutos. No use un valor demasiado bajo para evitar bloqueos.",
-        "pl": "Interwał aktualizacji w minutach. Nie używaj zbyt niskiej wartości, aby uniknąć blokowania.",
-        "uk": "Інтервал оновлення у хвилинах. Не використовуйте занадто низьке значення, щоб уникнути блокування.",
-        "zh-cn": "更新间隔（分钟）。请勿使用过低的值以防止被阻止。"
-      },
-      "min": 5,
-      "newLine": true,
-      "xs": 12,
-      "sm": 12,
-      "md": 6,
-      "lg": 6,
-      "xl": 6
-    },
-    "cleantype": {
-      "type": "checkbox",
-      "label": {
-        "en": "Prevent deletion of all states before receiving new values. This keeps old states but avoids configuration objects being removed.",
-        "de": "Löschen aller States vor dem Empfang neuer Werte verhindern. Dies behält alte States, verhindert aber das Entfernen von Konfigurationsobjekten.",
-        "ru": "Предотвратить удаление всех состояний перед получением новых значений. Это сохраняет старые состояния, но не позволяет удалять объекты конфигурации.",
-        "pt": "Impedir a eliminação de todos os estados antes de receber novos valores. Isto mantém os estados antigos, mas evita que os objetos de configuração sejam removidos.",
-        "nl": "Voorkom het verwijderen van alle states voordat nieuwe waarden worden ontvangen. Dit behoudt oude states maar voorkomt dat configuratieobjecten worden verwijderd.",
-        "fr": "Empêcher la suppression de tous les états avant de recevoir de nouvelles valeurs. Cela conserve les anciens états mais évite la suppression des objets de configuration.",
-        "it": "Impedisci l'eliminazione di tutti gli stati prima di ricevere nuovi valori. Questo mantiene i vecchi stati ma evita la rimozione degli oggetti di configurazione.",
-        "es": "Evitar la eliminación de todos los estados antes de recibir nuevos valores. Esto mantiene los estados antiguos pero evita que se eliminen los objetos de configuración.",
-        "pl": "Zapobiegaj usuwaniu wszystkich stanów przed otrzymaniem nowych wartości. Zachowuje to stare stany, ale zapobiega usuwaniu obiektów konfiguracji.",
-        "uk": "Запобігати видаленню всіх станів перед отриманням нових значень. Це зберігає старі стани, але запобігає видаленню об'єктів конфігурації.",
-        "zh-cn": "在接收新值之前防止删除所有状态。这会保留旧状态，但避免配置对象被删除。"
-      },
-      "newLine": true,
-      "xs": 12,
-      "sm": 12,
-      "md": 12,
-      "lg": 12,
-      "xl": 12
-    },
-    "fetchReports": {
-      "type": "checkbox",
-      "label": {
-        "en": "Fetch reports from the app.",
-        "de": "Berichte aus der App abrufen.",
-        "ru": "Получать отчёты из приложения.",
-        "pt": "Obter relatórios da aplicação.",
-        "nl": "Rapporten ophalen uit de app.",
-        "fr": "Récupérer les rapports depuis l'application.",
-        "it": "Recupera i report dall'app.",
-        "es": "Obtener informes de la aplicación.",
-        "pl": "Pobierz raporty z aplikacji.",
-        "uk": "Отримувати звіти з додатка.",
-        "zh-cn": "从应用获取报告。"
-      },
-      "newLine": true,
-      "xs": 12,
-      "sm": 12,
-      "md": 6,
-      "lg": 6,
-      "xl": 6
-    },
-    "fetchReportsLimit": {
-      "type": "number",
-      "label": {
-        "en": "Number of last days for reports.",
-        "de": "Anzahl der letzten Tage für Berichte.",
-        "ru": "Количество последних дней для отчётов.",
-        "pt": "Número de últimos dias para relatórios.",
-        "nl": "Aantal laatste dagen voor rapporten.",
-        "fr": "Nombre de derniers jours pour les rapports.",
-        "it": "Numero di ultimi giorni per i report.",
-        "es": "Número de últimos días para informes.",
-        "pl": "Liczba ostatnich dni dla raportów.",
-        "uk": "Кількість останніх днів для звітів.",
-        "zh-cn": "报告的最近天数。"
-      },
-      "min": 1,
-      "max": 60,
-      "newLine": true,
-      "xs": 12,
-      "sm": 12,
-      "md": 6,
-      "lg": 6,
-      "xl": 6
+      "items": {
+        "cleantype": {
+          "type": "checkbox",
+          "label": {
+            "en": "Prevent deletion of all states before receiving new values (legacy multiMATIC)",
+            "de": "Löschen aller States vor neuen Werten verhindern (Legacy multiMATIC)"
+          },
+          "xs": 12,
+          "sm": 12,
+          "md": 12,
+          "lg": 12,
+          "xl": 12
+        }
+      }
     }
   }
 }

@@ -28,17 +28,33 @@ This adapter connects ioBroker to Vaillant heating systems via the myVaillant cl
 
 ## Configuration
 
-Set the following values in the adapter configuration:
+The admin UI is organized in tabs:
+
+| Tab | Purpose |
+|-----|---------|
+| **myVaillant** | Login, password, location (select) |
+| **Polling & data** | Status/stats intervals and per-feature fetch toggles |
+| **Legacy multiMATIC** | Legacy-only options (`fetchReports`) |
+| **Advanced** | Legacy state cleanup (`cleantype`) |
+
+Recommended starting point:
 
 ```text
 myv = true
 user = your email
 password = your password
 location = germany
-fetchReports = false
+interval = 15
+statsInterval = 1440
 ```
 
-`fetchReports = false` is recommended for the first smoke test to reduce API load.
+Optional API sources (DTC, RTS, MPC, EEBUS, connection status, time zone) are **off by default** to reduce Vaillant API quota usage. Enable only what you need.
+
+`fetchReports` applies to **legacy multiMATIC only**, not myVaillant EMF statistics.
+
+### Summary states
+
+When `fetchSummary` is enabled, flat states are created under `{systemId}.summary.*` (outdoor temperature, operation mode) from the system status response without extra API calls.
 
 ---
 

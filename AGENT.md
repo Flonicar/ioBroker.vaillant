@@ -19,6 +19,7 @@ Ein Release ist **erst fertig**, wenn alle Schritte erledigt sind — **nicht** 
 |--------|--------|
 | 1 | `package.json` und `io-package.json` → gleiche Version |
 | 2 | `io-package.json` → `common.news` für die neue Version in **allen** Sprachen (wie bei 1.0.3) |
+| 2b | Neue `native`-Keys in `io-package.json` und `admin/jsonConfig.json` konsistent? Defaults quota-sicher? |
 | 3 | `npm test` (und bei Bedarf `npm run check`, `npm run lint`) |
 | 4 | Commit, z. B. `chore(release): prepare version X.Y.Z` |
 | 5 | Tag `vX.Y.Z` erstellen und nach `origin` pushen |
@@ -61,5 +62,5 @@ Siehe `docs/UPSTREAM-SYNC.md`: upstream fetchen, Drift prüfen, ggf. mergen.
 
 - **Upstream**: TA2k/ioBroker.vaillant
 - **Fork-Remote**: `origin` → Flonicar
-- **Struktur**: `lib/` (api, handlers, sync, legacy), schlankes `main.js`
+- **Struktur**: `lib/` (api, auth, config, handlers, sync, legacy), schlankes `main.js`
 - **Doku**: `docs/README-de.md` (Diagnose), `docs/UPSTREAM-SYNC.md`

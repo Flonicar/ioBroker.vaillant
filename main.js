@@ -18,6 +18,8 @@ const diagnostics = require("./lib/diagnostics");
 const ioPackage = require("./io-package.json");
 const stateChangeHandler = require("./lib/handlers/stateChange");
 const statsSync = require("./lib/sync/stats");
+const metaSync = require("./lib/sync/meta");
+const { migrateConfig } = require("./lib/config/features");
 const multimatic = require("./lib/legacy/multimatic");
 
 class Vaillant extends utils.Adapter {
@@ -105,6 +107,7 @@ class Vaillant extends utils.Adapter {
             return;
         }
         this.config.password = this.config.passwordv2;
+        migrateConfig(this.config);
         if (this.config.interval < 5) {
             this.log.warn("Interval under 5min is not recommended. Set it back to 5min");
             this.config.interval = 5;
@@ -117,6 +120,10 @@ class Vaillant extends utils.Adapter {
         if (this.config.fetchReportsLimit > 60) {
             this.log.warn("Only 60 days of the last reports are supported. Set it back to 60 days");
             this.config.fetchReportsLimit = 60;
+        }
+        if (this.config.statsInterval < 60) {
+            this.log.warn("Stats interval under 60min is not recommended. Set it back to 60min");
+            this.config.statsInterval = 60;
         }
         this.subscribeStates("*");
         // Reset the connection indicator during startup
@@ -134,37 +141,27 @@ class Vaillant extends utils.Adapter {
                 await this.myvLoginv2();
             }
             if (this.session.access_token) {
+                const runStatusPoll = async () => {
+                    await this.updateMyvDevices();
+                    await this.updateMyvRooms();
+                    await this.updateMyvPvData();
+                    await this.updateMyvExtras();
+                    await this.updateMyvMeta();
+                };
+                const runStatsPoll = async () => {
+                    await this.updateMyStats();
+                    await this.updateMyvEfficiency();
+                };
+
                 this.log.info("Getting myv devices");
                 await this.getMyvDeviceList();
                 this.log.info("Receiving first time status");
-                await this.updateMyvDevices();
-                await this.updateMyvRooms();
-                await this.updateMyvPvData();
+                await runStatusPoll();
                 this.log.info("Receiving first time stats");
                 await this.clearOldStats();
-                await this.updateMyStats();
-                await this.updateMyvEfficiency();
-                await this.updateMyvExtras();
-                this.updateInterval = this.setInterval(
-                    async () => {
-                        await this.updateMyvDevices();
-                        await this.updateMyvRooms();
-                        await this.updateMyvPvData();
-                        await this.updateMyvExtras();
-                    },
-                    this.config.interval * 60 * 1000,
-                );
-                this.statInterval = this.setInterval(
-                    async () => {
-                        //run only between 00:00 and 00:11
-                        const now = new Date();
-                        if (now.getHours() === 0 && now.getMinutes() < 11) {
-                            await this.updateMyStats();
-                            await this.updateMyvEfficiency();
-                        }
-                    },
-                    10 * 60 * 1000,
-                );
+                await runStatsPoll();
+                this.updateInterval = this.setInterval(runStatusPoll, this.config.interval * 60 * 1000);
+                this.statInterval = this.setInterval(runStatsPoll, this.config.statsInterval * 60 * 1000);
             }
             this.refreshTokenInterval = this.setInterval(
                 () => {
@@ -300,6 +297,9 @@ class Vaillant extends utils.Adapter {
     }
     async updateMyvExtras() {
         return statsSync.updateMyvExtras(this);
+    }
+    async updateMyvMeta() {
+        return metaSync.updateMyvMeta(this);
     }
     async refreshToken() {
         return myVaillantAuth.refreshToken(this);
