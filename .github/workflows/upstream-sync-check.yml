@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 env:
   MAX_BEHIND_COMMITS: 5
@@ -55,45 +54,6 @@ jobs:
             git log --oneline -10 HEAD..upstream/master || true
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Create or update drift issue
-        if: steps.drift.outputs.behind != '0'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TITLE="Upstream drift: ${{ steps.drift.outputs.behind }} commits behind TA2k/ioBroker.vaillant"
-          BODY=$(cat <<EOF
-          The fork is **${{ steps.drift.outputs.behind }}** commit(s) behind \`upstream/master\` and **${{ steps.drift.outputs.ahead }}** ahead.
-
-          Recent upstream commits:
-          \`\`\`
-          ${{ steps.drift.outputs.commits }}
-          \`\`\`
-
-          See [docs/UPSTREAM-SYNC.md](docs/UPSTREAM-SYNC.md) for the merge checklist.
-
-          \`\`\`bash
-          git fetch upstream
-          git log --oneline master..upstream/master
-          \`\`\`
-          EOF
-          )
-          EXISTING=$(gh issue list --label upstream-sync --state open --json number --jq '.[0].number' || true)
-          if [ -n "$EXISTING" ]; then
-            gh issue edit "$EXISTING" --title "$TITLE" --body "$BODY"
-          else
-            gh issue create --title "$TITLE" --body "$BODY" --label upstream-sync
-          fi
-
-      - name: Close drift issue when up to date
-        if: steps.drift.outputs.behind == '0'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          ISSUE=$(gh issue list --label upstream-sync --state open --json number --jq '.[0].number' || true)
-          if [ -n "$ISSUE" ]; then
-            gh issue close "$ISSUE" --comment "Fork is up to date with upstream/master."
-          fi
 
       - name: Warn when behind threshold
         if: steps.drift.outputs.behind > env.MAX_BEHIND_COMMITS

@@ -100,6 +100,22 @@ Advanced users can send custom API payloads. This is experimental and may not wo
 
 ---
 
+## Diagnostics
+
+The adapter exposes additional instance states under `info.*` for troubleshooting:
+
+| State | Description |
+|-------|-------------|
+| `info.connection` | Cloud connection indicator |
+| `info.authMode` | Active path: `myvaillant`, `multimatic`, or `none` |
+| `info.lastError` | Last sanitized error message (no tokens) |
+| `info.lastSuccessfulPoll` | Unix timestamp (ms) of the last successful myVaillant device poll |
+| `info.adapterVersion` | Installed adapter version |
+
+Use `info.lastError` together with the adapter log to diagnose login or sync issues quickly.
+
+---
+
 ## Limitations and Warnings
 
 * This adapter uses an **unofficial Vaillant cloud API**

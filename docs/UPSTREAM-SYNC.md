@@ -44,7 +44,7 @@ git log --oneline upstream/master..master    # fork-only commits
 
 ## CI
 
-GitHub Actions workflow `.github/workflows/upstream-sync-check.yml` runs weekly (and on `master` push) to report behind/ahead counts and open/update a drift issue when needed.
+GitHub Actions workflow `.github/workflows/upstream-sync-check.yml` runs weekly (and on `master` push) and writes a drift summary to the workflow run. GitHub Issues are disabled in this fork, so drift is reported via the Actions summary only.
 
 ## Sync log
 
