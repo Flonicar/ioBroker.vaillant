@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "vaillant",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "news": {
+      "1.0.5": {
+        "en": "tabbed admin UI with per-feature fetch toggles; optional EMF hour buckets and yearly report; API quota pause on HTTP 403",
+        "de": "Admin-UI mit Tabs und Abruf-Toggles; optionale EMF-Stundenwerte und Jahresbericht; API-Quota-Pause bei HTTP 403",
+        "ru": "вкладки в админке и переключатели опроса; опциональные почасовые EMF-бакеты и годовой отчёт; пауза API при HTTP 403",
+        "pt": "UI com abas e toggles de consulta; buckets EMF horários e relatório anual opcionais; pausa de quota API em HTTP 403",
+        "nl": "tabbladen in admin-UI met fetch-toggles; optionele EMF-uurbuckets en jaarrapport; API-quotapauze bij HTTP 403",
+        "fr": "interface admin à onglets et bascules d'interrogation ; buckets EMF horaires et rapport annuel optionnels ; pause quota API sur HTTP 403",
+        "it": "UI admin a schede con toggle di fetch; bucket EMF orari e report annuale opzionali; pausa quota API su HTTP 403",
+        "es": "UI de admin con pestañas y toggles de consulta; buckets EMF horarios e informe anual opcionales; pausa de cuota API en HTTP 403",
+        "pl": "zakładki w UI admin i przełączniki pobierania; opcjonalne godzinowe buckety EMF i raport roczny; pauza quota API przy HTTP 403",
+        "uk": "вкладки в адмінці та перемикачі опитування; опціональні погодинні EMF-бакети та річний звіт; пауза API при HTTP 403",
+        "zh-cn": "分标签管理界面与分项抓取开关；可选 EMF 小时桶与年度报告；HTTP 403 时 API 配额暂停"
+      },
       "1.0.4": {
         "en": "modular refactor: write handlers, stats sync and legacy multimatic isolated; diagnostic states; more unit tests and retry for cloud polling",
         "de": "Modularer Refactor: Write-Handler, Stats-Sync und Legacy-multiMATIC ausgelagert; Diagnose-States; mehr Unit-Tests und Retry für Cloud-Polling",
@@ -254,6 +267,9 @@
     "fetchPvData": true,
     "fetchStats": true,
     "fetchStatsMonths": false,
+    "fetchStatsHours": false,
+    "fetchStatsHoursLimit": 48,
+    "fetchYearlyReport": false,
     "fetchEfficiency": true,
     "fetchTroubleCodes": false,
     "fetchRts": false,

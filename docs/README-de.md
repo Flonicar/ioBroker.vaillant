@@ -28,7 +28,20 @@ In den Instanzoptionen mail und password der multimatic /senso oder myVaillant a
 | **Legacy multiMATIC** | Nur Legacy (`fetchReports`) |
 | **Erweitert** | `cleantype` für Legacy |
 
-**Quota-Hinweis:** Zusatz-Abrufe (DTC, RTS, MPC, EEBUS, Verbindungsstatus, Zeitzone) sind standardmäßig **aus**. Nur aktivieren, was wirklich gebraucht wird. Status-Intervall nicht unter 15 Minuten empfehlen.
+**Quota-Hinweis:** Zusatz-Abrufe (DTC, RTS, MPC, EEBUS, Verbindungsstatus, Zeitzone, **stündliche EMF-Buckets**, **Jahresbericht**) sind standardmäßig **aus**. Nur aktivieren, was wirklich gebraucht wird. Status-Intervall nicht unter 15 Minuten empfehlen.
+
+Bei HTTP **403** (API-Quota überschritten) pausieren Cloud-Abrufe automatisch für eine Stunde.
+
+### EMF-Statistik-Auflösungen
+
+| Toggle | State-Suffix | Standard |
+|--------|--------------|----------|
+| `fetchStats` | Tages-Buckets (`.day`) | an |
+| `fetchStatsMonths` | Monats-Buckets (`.month`) | aus |
+| `fetchStatsHours` | Stunden-Buckets (`.hour`) | aus |
+| `fetchYearlyReport` | `{systemId}.stats.yearlyReport.*` | aus |
+
+`fetchReportsLimit` = Anzahl vergangener **Tage** für Tages-Buckets. `fetchStatsHoursLimit` = Stundenfenster (max. 72).
 
 Unter `{systemId}.summary.*` liegen flache Summary-States (z. B. Außentemperatur, Betriebsmodus) ohne zusätzliche API-Calls, wenn `fetchSummary` aktiv ist.
 

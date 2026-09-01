@@ -178,6 +178,45 @@
           "lg": 4,
           "xl": 4
         },
+        "fetchStatsHours": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch hourly EMF buckets (quota intensive)",
+            "de": "Stündliche EMF-Buckets abrufen (quota-intensiv)"
+          },
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
+        "fetchStatsHoursLimit": {
+          "type": "number",
+          "label": {
+            "en": "EMF hour stats: number of past hours (max. 72)",
+            "de": "EMF-Stundenstatistik: Anzahl vergangener Stunden (max. 72)"
+          },
+          "min": 1,
+          "max": 72,
+          "newLine": true,
+          "xs": 12,
+          "sm": 12,
+          "md": 6,
+          "lg": 6,
+          "xl": 6
+        },
+        "fetchYearlyReport": {
+          "type": "checkbox",
+          "label": {
+            "en": "Fetch EMF yearly report",
+            "de": "EMF-Jahresbericht abrufen"
+          },
+          "xs": 12,
+          "sm": 6,
+          "md": 4,
+          "lg": 4,
+          "xl": 4
+        },
         "fetchEfficiency": {
           "type": "checkbox",
           "label": {

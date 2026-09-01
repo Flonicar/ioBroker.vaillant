@@ -20,6 +20,7 @@ const stateChangeHandler = require("./lib/handlers/stateChange");
 const statsSync = require("./lib/sync/stats");
 const metaSync = require("./lib/sync/meta");
 const { migrateConfig } = require("./lib/config/features");
+const { isQuotaPaused } = require("./lib/api/quota");
 const multimatic = require("./lib/legacy/multimatic");
 
 class Vaillant extends utils.Adapter {
@@ -38,6 +39,7 @@ class Vaillant extends utils.Adapter {
         this.deviceArray = [];
         this.disabledRooms = [];
         this.disabledPv = [];
+        this.quotaPausedUntil = 0;
         this.json2iob = new Json2iob(this);
         this.cookieJar = new tough.CookieJar();
         this.requestClient = axios.create({
@@ -125,6 +127,13 @@ class Vaillant extends utils.Adapter {
             this.log.warn("Stats interval under 60min is not recommended. Set it back to 60min");
             this.config.statsInterval = 60;
         }
+        if (this.config.fetchStatsHoursLimit > 72) {
+            this.log.warn("Hourly EMF stats are limited to 72 hours. Set it back to 72 hours");
+            this.config.fetchStatsHoursLimit = 72;
+        }
+        if (this.config.fetchStatsHoursLimit < 1) {
+            this.config.fetchStatsHoursLimit = 48;
+        }
         this.subscribeStates("*");
         // Reset the connection indicator during startup
         this.setState("info.connection", false, true);
@@ -142,6 +151,10 @@ class Vaillant extends utils.Adapter {
             }
             if (this.session.access_token) {
                 const runStatusPoll = async () => {
+                    if (isQuotaPaused(this)) {
+                        this.log.debug("Skipping status poll – API quota pause active");
+                        return;
+                    }
                     await this.updateMyvDevices();
                     await this.updateMyvRooms();
                     await this.updateMyvPvData();
@@ -149,8 +162,13 @@ class Vaillant extends utils.Adapter {
                     await this.updateMyvMeta();
                 };
                 const runStatsPoll = async () => {
+                    if (isQuotaPaused(this)) {
+                        this.log.debug("Skipping stats poll – API quota pause active");
+                        return;
+                    }
                     await this.updateMyStats();
                     await this.updateMyvEfficiency();
+                    await this.updateYearlyReport();
                 };
 
                 this.log.info("Getting myv devices");
@@ -291,6 +309,9 @@ class Vaillant extends utils.Adapter {
     }
     async updateMyvEfficiency() {
         return statsSync.updateMyvEfficiency(this);
+    }
+    async updateYearlyReport() {
+        return statsSync.updateYearlyReport(this);
     }
     async updateMyvPvData() {
         return statsSync.updateMyvPvData(this);

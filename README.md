@@ -48,9 +48,22 @@ interval = 15
 statsInterval = 1440
 ```
 
-Optional API sources (DTC, RTS, MPC, EEBUS, connection status, time zone) are **off by default** to reduce Vaillant API quota usage. Enable only what you need.
+Optional API sources (DTC, RTS, MPC, EEBUS, connection status, time zone, **hourly EMF buckets**, **yearly report**) are **off by default** to reduce Vaillant API quota usage. Enable only what you need.
+
+On HTTP **403** (API quota exceeded), cloud polls pause automatically for one hour.
 
 `fetchReports` applies to **legacy multiMATIC only**, not myVaillant EMF statistics.
+
+### EMF statistics resolutions
+
+| Toggle | States suffix | Default |
+|--------|---------------|---------|
+| `fetchStats` | day buckets (`.day`) | on |
+| `fetchStatsMonths` | month buckets (`.month`) | off |
+| `fetchStatsHours` | hour buckets (`.hour`) | off |
+| `fetchYearlyReport` | `{systemId}.stats.yearlyReport.*` | off |
+
+`fetchReportsLimit` controls how many past **days** are requested for day buckets. `fetchStatsHoursLimit` controls the hour window (max. 72 hours).
 
 ### Summary states
 
@@ -63,8 +76,9 @@ When `fetchSummary` is enabled, flat states are created under `{systemId}.summar
 * Login via myVaillant using Keycloak / PKCE
 * Discover available systems
 * Read system status
-* Read statistics if enabled
+* Read statistics (day/month/hour buckets and optional yearly report)
 * Create ioBroker states from received API data
+* Automatic API quota pause on HTTP 403
 
 ---
 
