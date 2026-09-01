@@ -45,6 +45,69 @@ Bei HTTP **403** (API-Quota überschritten) pausieren Cloud-Abrufe automatisch f
 
 Unter `{systemId}.summary.*` liegen flache Summary-States (z. B. Außentemperatur, Betriebsmodus) ohne zusätzliche API-Calls, wenn `fetchSummary` aktiv ist.
 
+### myVaillant-API: Abdeckung
+
+Recherche-Referenz (Vergleich mit [myPyllant](https://github.com/signalkraft/myPyllant) und Praxisbetrieb).  
+Basis-URL: `https://api.vaillant-group.com/service-connected-control/end-user-app-api/v1`
+
+#### Implementierte Abrufe
+
+| Bereich | API-Endpunkt | Config-Toggle | Standard | ioBroker-States |
+|---------|--------------|---------------|----------|-----------------|
+| Discovery | `GET /homes` | (beim Login) | — | Geräteliste |
+| Reglertyp | `GET /systems/{id}/meta-info/control-identifier` | (Discovery) | — | TLI- vs. VRC-Pfade |
+| Live-Status | `GET /systems/{id}/tli` bzw. VRC-URL | `fetchStatus` | an | `{systemId}.*` (ETag) |
+| Ambisense-Räume | `GET /api/v1/ambisense/facilities/{id}/rooms` | `fetchRooms` | an | `{systemId}.rooms.*` |
+| Ambisense-Fähigkeit | `GET …/ambisense/…/capability` | `fetchAmbisenseCapability` | aus | `{systemId}.meta.ambisenseCapability.*` |
+| EMF-Übersicht | `GET /emf/v2/{id}/currentSystem` | `fetchStats` | an | `{systemId}.stats.*` |
+| EMF Tages-Buckets | `GET …/buckets?resolution=DAY` | `fetchStats` | an | `….day.*` |
+| EMF Monats-Buckets | `…&resolution=MONTH` | `fetchStatsMonths` | aus | `….month.*` |
+| EMF Stunden-Buckets | `…&resolution=HOUR` | `fetchStatsHours` | aus | `….hour.*` |
+| EMF-Jahresbericht | `GET /emf/v2/{id}/report/{year}` | `fetchYearlyReport` | aus | `{systemId}.stats.yearlyReport.*` |
+| EMF-Effizienz | `GET …/currentSystemWithEfficiency` | `fetchEfficiency` | an | `{systemId}.stats.efficiency.*` |
+| PV-Live | `GET /rts/{id}/currentPvData` | `fetchPvData` | an | `{systemId}.pvData.*` |
+| Fehlercodes | `GET /systems/{id}/diagnostic-trouble-codes` | `fetchTroubleCodes` | aus | `{systemId}.troubleCodes.*` |
+| RTS-Geräte | `GET /rts/{id}/devices` | `fetchRts` | aus | `{systemId}.rts.*` (oft TLI) |
+| MPC-Leistung | `GET /hem/{id}/mpc` | `fetchMpc` | aus | `{systemId}.mpc.*` (oft TLI) |
+| Energiemanagement | `GET /eebus/energy-management/{id}` | `fetchEnergyManagement` | aus | `{systemId}.energyManagement.*` |
+| EEBUS / SHIP | `GET /ship/{id}/self` | `fetchEebus` | aus | `{systemId}.eebus.*` |
+| Verbindungsstatus | `GET …/meta-info/connection-status` | `fetchConnectionStatus` | aus | `meta.connection.*`, `info.connection` |
+| Zeitzone | `GET …/meta-info/time-zone` | `fetchTimeZone` | aus | `meta.timeZone.*` (einmalig gecacht) |
+| Summary | aus Status-JSON | `fetchSummary` | an | `{systemId}.summary.*` (kein Extra-Call) |
+
+`fetchReports` gilt nur für **Legacy multiMATIC** (`smart.vaillant.com`), nicht für myVaillant-EMF.
+
+#### Implementierte Schreibzugriffe (experimentell)
+
+Über `{systemId}.remote.*`, Zonen-States und `remotes.customCommand`:
+
+* Zonen: Betriebsmodus, Sollwert, Quick-Veto, Absenkung, Zeitfenster, Kühlung
+* Warmwasser: Boost, Temperatur, Betriebsmodus
+* Kreise: Heizkurve, Mindest-Vorlauf, Außentemperatur-Begrenzung
+* Lüftung: Betriebsmodus, Stufen, Boost
+* System: Abwesenheit, Urlaub, Kühlung für X Tage
+* Ambisense-Räume: Betriebsmodus, Quick-Veto, Solltemperatur (`remote.room.*`)
+* EEBUS: Spine ein/aus (`PUT /ship/{id}/self/spine`)
+
+#### Bekannte Lücken (API vorhanden, Adapter noch nicht)
+
+| Thema | Hinweis |
+|-------|---------|
+| Ambisense-Zeitprogramm schreiben | `PUT …/rooms/{i}/timeprogram` — Lesen über Rooms-GET; Steuerung aus ioBroker fehlt |
+| Legacy-Spine-Metering | Alte multiMATIC-API: `currentPVMeteringInfo`; myVaillant nutzt `currentPvData` |
+| Weitere `meta-info`-Keys | Öffentlich bekannt: nur `control-identifier`, `connection-status`, `time-zone` |
+
+#### Quota-Empfehlung
+
+| Risiko | Empfehlung |
+|--------|------------|
+| Niedrig | `fetchStatus` + `fetchSummary`, Intervall 15 min |
+| Mittel | `fetchStats` (Tag) + `fetchEfficiency`, `statsInterval` 1440 |
+| Hoch | `fetchStatsHours`, `fetchStatsMonths`, `fetchConnectionStatus`, mehrere Extras gleichzeitig |
+| Sehr hoch | Status-Intervall unter 15 min mit allen Toggles an |
+
+Faustregel: Defaults beibehalten, Extras nur bei Bedarf aktivieren. Stunden-Buckets erzeugen pro Gerät/Modus/Typ einen eigenen Request — deshalb kurzes Fenster (`fetchStatsHoursLimit`, max. 72 h).
+
 Configuration können geändert werde in dem sie unter dem Unterpunkt configuration angepasst werden. Manche configuration werden erst angewendet wenn der Modus auf ON oder MANUAL ist und nicht AUTO oder TIME_CONTROLLED
 
 ## **Beispiel Mutlimatic:**
